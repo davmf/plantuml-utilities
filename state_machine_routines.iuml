@@ -1,0 +1,488 @@
+@startuml state_machine_routines
+
+scale 4096 height
+
+right footer Updated %date("yyyy.MM.dd' at 'HH:mm")
+
+hide empty description
+
+skinparam Linetype ortho
+skinparam Nodesep 10
+skinparam Ranksep 20
+skinParam TabSize 2
+
+skinParam TitleFontSize 24
+
+skinparam state {
+    BorderColor<<transition>> transparent
+    BackgroundColor<<transition>> #F8F8F8
+    BorderColor<<hidden>> transparent
+    BackgroundColor<<hidden>> transparent
+    FontColor<<hidden>> transparent
+    FontSize<<transition>> 11
+    FontSize 12
+}
+
+skinparam rectangle {
+    BorderColor<<arrow_label>> transparent
+    BackgroundColor<<arrow_label>> #F8F8F8
+    FontSize<<arrow_label>> 10
+}
+
+' Used for creating unique node names
+!$node_number = 1
+
+' Gets a unique name for a new node
+!function $new_node()
+    !$node_number = $node_number + 1
+    !return "node_" + $node_number
+!endfunction
+
+' Replace all instances of $find in $string with $repl and return the new string
+!function $strrepl($string, $find, $repl)
+    !$find_str_pos = %strpos($string, $find)
+
+    !if ($find_str_pos >= 0)
+        !$str1 = %substr($string, 0, $find_str_pos)
+        !$str2 = %substr($string, $find_str_pos + %strlen($find), %strlen($string))
+        !$string = $str1 + $repl + $str2
+        !$find_str_pos = %strpos($string, $find)
+
+        !if ($find_str_pos >= 0)
+            !$string = $strrepl($string, $find, $repl)
+        !endif
+    !endif
+
+    !return $string
+!endfunction
+
+!function $make_symbol($name)
+    !$symbol = $strrepl($name, " ", "_")
+    !$symbol = $strrepl($symbol, "-", "_")
+    !return $symbol
+!endfunction
+
+!function $super_state($name)
+    !return "state " + %chr(34) + "<size:16>**" + $name + "**" + %chr(34) + " as " + $make_symbol($name)
+!endfunction
+
+!function $event($name)
+    !return "**" + $name + "**"
+!endfunction
+
+!function $guard($name)
+    !return "[" + $name + " ?]"
+!endfunction
+
+!function $true()
+    !return "[true]"
+!endfunction
+
+!function $false()
+    !return "[false]"
+!endfunction
+
+!function $br()
+    !return " /<br>"
+!endfunction
+
+!procedure $super_state_behaviour($name, $entry="", $do="", $exit="")
+    !$name = $make_symbol($name)
+    !$text = ""
+
+    !if $entry != ""
+        !$entry = $strrepl($entry, "<br>", "|\n| |")
+        !$text = $text + "<#transparent,#transparent>|<r>//entry//: |" + $entry + " |"
+    !endif
+
+    !if $do != ""
+        !$do = $strrepl($do, "<br>", "|\n| |")
+        !if $text != ""
+            !$text = $text + "\n"
+        !else
+            !$text = "<#transparent,#transparent>"
+        !endif
+
+        !$text = $text + "|<r>//do//: |" + $do + " |"
+    !endif
+
+    !if $exit != ""
+        !if $text != ""
+            !$text = $text + "\n"
+        !else
+            !$text = "<#transparent,#transparent>"
+        !endif
+
+        !$text = $text + "|<r>//exit//: |" + $exit + " |"
+    !endif
+
+    !if $text != ""
+        $name : $text
+    !endif
+!endprocedure
+
+' Return whether two sets of tags intersect 
+!function $is_str_match($a, $b)
+    !if %strpos($a, $b) >= 0 !return %true()
+    !return %false()
+!endfunction
+
+!function $is_visible($tags)
+    !if ($tags == "") !return %true()
+
+    !if ($white_list == "")
+        !if ($black_list == "") !return %true()
+        !if $is_str_match($tags, $black_list) !return %false()
+        !return %true()
+    !endif
+
+    !if $is_str_match($tags, $white_list) !return %true()
+    !return %false()
+!endfunction
+
+!procedure $state($name, $entry="", $do="", $exit="", $tags="")
+    !$label = "**" + $name + "**"
+    !$text = ""
+
+    !if $entry != ""
+        !$entry = $strrepl($entry, "<br>", "|\n| |")
+        !$text = $text + "<#transparent,#transparent>|<r>//entry//: |" + $entry + " |"
+    !endif
+
+    !if $do != ""
+        !$do = $strrepl($do, "<br>", "|\n| |")
+        !if $text != ""
+            !$text = $text + "\n"
+        !else
+            !$text = "<#transparent,#transparent>"
+        !endif
+
+        !$text = $text + "|<r>//do//: |" + $do + " |"
+    !endif
+
+    !if $exit != ""
+        !$exit = $strrepl($exit, "<br>", "|\n| |")
+        !if $text != ""
+            !$text = $text + "\n"
+        !else
+            !$text = "<#transparent,#transparent>"
+        !endif
+
+        !$text = $text + "|<r>//exit//: |" + $exit + " |"
+    !endif
+
+    !if $text != ""
+        !if $is_visible($tags)
+            state $make_symbol($name) as "<size:16>$label" : $text
+        !else
+            state $make_symbol($name) as "<size:16>$label" <<hidden>> : $text
+        !endif
+    !else
+        !if $is_visible($tags)
+            state $make_symbol($name) as "<size:16>$label"
+        !else
+            state $make_symbol($name) as "<size:16>$label" <<hidden>>
+        !endif
+    !endif
+!endprocedure
+
+!procedure $entry_point($name)
+    state $make_symbol($name) as " " <<entryPoint>>
+!endprocedure
+
+!procedure $exit_point($name)
+    state $make_symbol($name) as " " <<exitPoint>>
+!endprocedure
+
+!procedure $transition($a, $b, $t="", $colour="", $dir="", $dir_="", $note="", $suffix="", $tags="")
+    !if $dir == ""
+        !$dir = "d"
+        !$dir_ = "d"
+    !else
+        !if $dir_ == ""
+            !$dir_ = $dir
+        !endif
+    !endif
+
+    !$a = $make_symbol($a)
+    !$b = $make_symbol($b)
+
+    !if $colour == ""
+        !$colour = "#Green"
+    !endif
+
+    !if $is_visible($tags)
+        !$stereotype = "transition"
+    !else
+        !$stereotype = "hidden"
+        !$colour = "#transparent"
+    !endif
+
+    !if $t != ""
+        !$transition_node_name = $new_node()
+
+        !if $a == "[*]"
+            !$a = $new_node()
+            state $a <<start>> $colour
+        !else
+            !if $b == "[*]"
+                !$b = $new_node()
+                state $b <<end>> $colour
+            !endif
+        !endif
+
+        !$t = "<#transparent,#transparent>|<color:" + $colour + ">" + $t + "|"
+        !$repl = "|\n|" + "<color:" + $colour + ">"
+        !$t = $strrepl($t, "<br>", $repl)
+
+        state "$t" as $transition_node_name <<$stereotype>>
+
+        !if $note != ""
+            note right : $note
+        !endif
+
+        $a -[$colour]$dir->o $transition_node_name
+        $transition_node_name -[$colour]$dir_-> $b
+    !else
+        !if $a == "[*]"
+            !$a = $new_node()
+            state $a <<start>> $colour
+        !else
+            !if $b == "[*]"
+                !$b = $new_node()
+                state $b <<end>> $colour
+            !endif
+        !endif
+        $a -[$colour]$dir-> $b
+    !endif
+!endprocedure
+
+!procedure $component_link($a, $b, $t, $dir="", $dir_="")
+    !if $dir == ""
+        !$dir = "d"
+        !$dir_ = "d"
+    !else
+        !if $dir_ == ""
+            !$dir_ = $dir
+        !endif
+    !endif
+
+    !$a = $make_symbol($a)
+    !$b = $make_symbol($b)
+
+    !$transition_node_name = $a + "_to_" + $b
+
+    !while %variable_exists($transition_node_name)
+        !$transition_node_name = $transition_node_name + "_"
+    !endwhile
+
+    %set_variable_value($transition_node_name, "")
+
+    !$repl = "\n"
+    !$t = $strrepl($t, "<br>", $repl)
+
+    component "$t" as $transition_node_name <<arrow_label>>
+
+    $a -$dir-> $transition_node_name
+    $transition_node_name -$dir_-> $b
+!endprocedure
+
+!procedure $end_transition($a, $t="", $colour="#Red")
+    !$b = $a + "_end"
+    state $b <<end>> $colour
+    $transition($a, $b, $t, $colour, $dir="r")
+!endprocedure
+
+!procedure $error_transition($a, $t="", $colour="#Red", $note="", $dir="r")
+    !$b = $new_node()
+    state $b <<end>> $colour
+    $transition($a, $b, $t, $colour, $dir=$dir, $note=$note)
+!endprocedure
+
+!procedure $error_input_transition($b, $t="", $colour="#Red")
+    !$a = "error_" + $b
+    state $a <<start>> $colour
+    $transition($a, $b, $t, $colour, $dir="r")
+!endprocedure
+
+!procedure $choice_transition($a, $b, $c, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
+    !$choice = $new_node()
+
+    !if $is_visible($tags2) || $is_visible($tags3)
+        state $choice <<choice>>
+    !else
+        state $choice <<choice>> #transparent##transparent
+    !endif
+
+    $transition($a, $choice, $t1, $colour1, $tags=$tags1)
+    $transition($choice, $b, $t2, $colour2, $dir=$dir, $tags=$tags2)
+    $transition($choice, $c, $t3, $colour3, $dir=$dir_, $tags=$tags3)
+!endprocedure
+
+!procedure $choice_transition_2($a, $b, $c, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $suffix="")
+    !if $a == "[*]"
+        !$choice = "start_choice" + $suffix
+    !else
+        !$choice = $a + "_choice" + $suffix
+    !endif
+    
+    state $choice <<choice>>
+    $transition($a, $choice, $t1, $colour1)
+    $transition($choice, $b, $t2, $colour2, $dir="l", $dir_="d")
+    $transition($choice, $c, $t3, $colour3, $dir="r", $dir_="d")
+!endprocedure
+
+!procedure $choice_choice_transition($a, $b, $c, $d, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="")
+    !$choice1 = $new_node()
+
+    !if $is_visible($tags2) || $is_visible($tags3)
+        state $choice1 <<choice>>
+    !else
+        state $choice1 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice2 = $new_node()
+
+    !if $is_visible($tags4) || $is_visible($tags5)
+        state $choice2 <<choice>>
+    !else
+        state $choice2 <<choice>> #transparent##transparent
+    !endif
+
+    $transition($a, $choice1, $t1, $colour1, $tags=$tags1)
+    $transition($choice1, $b, $t2, $colour2, $tags=$tags2)
+    $transition($choice1, $choice2, $t3, $colour3, $tags=$tags3)
+    $transition($choice2, $c, $t4, $colour4, $tags=$tags4)
+    $transition($choice2, $d, $t5, $colour5, $tags=$tags5)
+!endprocedure
+
+!procedure $choice_choice_choice_transition($a, $b, $c, $d, $e, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $t6="", $colour6="", $t7="", $colour7="")
+    !$choice1 = $new_node()
+    !$choice2 = $new_node()
+    !$choice3 = $new_node()
+    state $choice1 <<choice>>
+    state $choice2 <<choice>>
+    state $choice3 <<choice>>
+    $transition($a, $choice1, $t1, $colour1)
+    $transition($choice1, $b, $t2, $colour2)
+    $transition($choice1, $choice2, $t3, $colour3)
+    $transition($choice2, $c, $t4, $colour4)
+    $transition($choice2, $choice3, $t5, $colour5)
+    $transition($choice3, $d, $t6, $colour6)
+    $transition($choice3, $e, $t7, $colour7)
+!endprocedure
+
+!procedure $three_choice_transition($a, $b, $c, $d, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="")
+    !$choice1 = $a + "_choice1"
+    state $choice1 <<choice>>
+    $transition($a, $choice1, $t1, $colour1)
+    $transition($choice1, $b, $t2, $colour2, $dir="l", $dir_="d")
+    $transition($choice1, $c, $t3, $colour3)
+    $transition($choice1, $d, $t4, $colour4, $dir="r", $dir_="d")
+!endprocedure
+
+!procedure $choice_end_transition($a, $c, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="")
+    !$choice = $a + "_choice"
+    state $choice <<choice>>
+    $transition($a, $choice, $t1)
+    $end_transition($choice, $t2)
+    $transition($choice, $c, $t3)
+!endprocedure
+
+!procedure $choice_end_choice_transition($a, $d, $e, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="")
+    !$choice = $a + "_choice"
+    !$choice1 = $choice + "_choice"
+    state $choice <<choice>>
+    state $choice1 <<choice>>
+    $transition($a, $choice, $t1)
+    $end_transition($choice, $t2)
+    $transition($choice, $choice1, $t3)
+    $transition($choice1, $d, $t4)
+    $transition($choice1, $e, $t5)
+!endprocedure
+
+!procedure $draft_labels()
+    center header <font color=red size=72>""**DRAFT                                DRAFT**""
+    center footer <font color=red size=72>""**DRAFT                                DRAFT**""
+!endprocedure
+
+!function $guard_action($g, $a)
+    !return $guard($g)+$br()+$a
+!endfunction
+
+!procedure $tokenise($token_string, $token_prefix="token", $delimiter=" ")
+    !$i = 0
+
+    !if ($token_string != "")
+        !$token_string = $token_string + " "
+        !$delimiter_position = %strpos($token_string, $delimiter)
+
+        !while $delimiter_position > 0
+            !$i = $i + 1
+            !$token_name = "$" + $token_prefix + $i
+            !$token = %substr($token_string, 0, $delimiter_position)
+            !$token_string = %substr($token_string, $delimiter_position + 1, %strlen($token_string) - $delimiter_position)
+            %set_variable_value($token_name, $token)
+            !$delimiter_position = %strpos($token_string, $delimiter)
+        !endwhile
+    !endif
+!endprocedure
+
+!function $is_match($tags, $filter_prefix)
+    !$tags = $tags + " "
+    !$i = 1
+    !$token_name = "$" + $filter_prefix + $i
+
+    !while (%variable_exists($token_name))
+        !$token_value = %get_variable_value($token_name) + " "
+
+        !if (%strpos($tags, $token_value) >= 0)
+            !return %true()
+        !endif
+
+        !$i = $i + 1
+        !$token_name = "$" + $filter_prefix + $i
+    !endwhile
+
+    !return %false()
+!endfunction
+
+' Determine whether a item should be visible using its tags
+'
+' An item is deemed to be visible if any of the following are true:
+'  - no tags
+'  - no in filter and either no out filter or none of the tags are
+'    in the out filter
+'  - an in filter containing at least one of the tags
+'
+'  Returns:
+'    Whether the item is visible
+!function $is_visible($tags)
+    !if $tags == ""
+        !return %true()
+    !endif
+
+    !if $in == ""
+        !if $out == ""
+            !return %true()
+        !endif
+
+        !return %not($is_match($tags, "out"))
+    !else
+        !return $is_match($tags, "in")
+    !endif
+!endfunction
+
+!if %variable_exists("$in")
+    $tokenise($in, "in")
+!else
+    !$in = ""
+!endif
+
+!if %variable_exists("$out")
+    $tokenise($out, "out")
+!else
+    !$out = ""
+!endif
+
+@enduml

@@ -360,9 +360,9 @@ skinparam note {
     $transition($choice1, $e, $t5)
 !endprocedure
 
-!procedure $draft_labels()
-    center header <font color=red size=72>""**DRAFT                                DRAFT**""
-    center footer <font color=red size=72>""**DRAFT                                DRAFT**""
+!procedure $draft_labels($font_size=72)
+    center header <font color=red size=$font_size>""**DRAFT                         DRAFT**""
+    center footer <font color=red size=$font_size>""**DRAFT                         DRAFT**""
 !endprocedure
 
 !function $guard_action($g, $a)

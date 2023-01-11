@@ -1,0 +1,35 @@
+@startuml component_routines
+
+!include common.iuml
+
+skinparam component {
+    BorderColor<<arrow label>> #transparent
+    BackgroundColor<<arrow label>> #F8F8F8
+    FontSize<<arrow label>> 10
+}
+
+!procedure $component_link($a, $b, $t, $dir="", $dir_="")
+    !if $dir == ""
+        !$dir = "d"
+        !$dir_ = "d"
+    !else
+        !if $dir_ == ""
+            !$dir_ = $dir
+        !endif
+    !endif
+
+    !$a = $make_symbol($a)
+    !$b = $make_symbol($b)
+
+    !$transition_node = $new_node()
+
+    !$repl = "\n"
+    !$t = $strrepl($t, "<br>", $repl)
+
+    component "$t" as $transition_node <<arrow label>>
+
+    $a -$dir-> $transition_node
+    $transition_node -$dir_-> $b
+!endprocedure
+
+@enduml

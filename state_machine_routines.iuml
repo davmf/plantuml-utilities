@@ -1,5 +1,7 @@
 @startuml state_machine_routines
 
+!include common.iuml
+
 scale 4096 height
 
 right footer Updated %date("yyyy.MM.dd' at 'HH:mm")
@@ -23,47 +25,18 @@ skinparam state {
     FontSize 12
 }
 
-skinparam rectangle {
-    BorderColor<<arrow_label>> transparent
-    BackgroundColor<<arrow_label>> #F8F8F8
-    FontSize<<arrow_label>> 10
+skinparam note {
+    FontColor<<hidden>> #transparent
+    BackgroundColor<<hidden>> #transparent
+    BorderColor<<hidden>> #transparent
 }
 
-' Used for creating unique node names
-!$node_number = 1
-
-' Gets a unique name for a new node
-!function $new_node()
-    !$node_number = $node_number + 1
-    !return "node_" + $node_number
-!endfunction
-
-' Replace all instances of $find in $string with $repl and return the new string
-!function $strrepl($string, $find, $repl)
-    !$find_str_pos = %strpos($string, $find)
-
-    !if ($find_str_pos >= 0)
-        !$str1 = %substr($string, 0, $find_str_pos)
-        !$str2 = %substr($string, $find_str_pos + %strlen($find), %strlen($string))
-        !$string = $str1 + $repl + $str2
-        !$find_str_pos = %strpos($string, $find)
-
-        !if ($find_str_pos >= 0)
-            !$string = $strrepl($string, $find, $repl)
-        !endif
+!function $super_state($name, $tags="")
+    !if $is_visible($tags)
+        !return "state " + %chr(34) + "<size:16>**" + $name + "**" + %chr(34) + " as " + $make_symbol($name)
+    !else
+        !return "state " + %chr(34) + "<size:16>**" + $name + "**" + %chr(34) + " as " + $make_symbol($name) + " <<hidden>>"
     !endif
-
-    !return $string
-!endfunction
-
-!function $make_symbol($name)
-    !$symbol = $strrepl($name, " ", "_")
-    !$symbol = $strrepl($symbol, "-", "_")
-    !return $symbol
-!endfunction
-
-!function $super_state($name)
-    !return "state " + %chr(34) + "<size:16>**" + $name + "**" + %chr(34) + " as " + $make_symbol($name)
 !endfunction
 
 !function $event($name)
@@ -186,15 +159,23 @@ skinparam rectangle {
     !endif
 !endprocedure
 
-!procedure $entry_point($name)
-    state $make_symbol($name) as " " <<entryPoint>>
+!procedure $entry_point($name, $tags="")
+    !if $is_visible($tags)
+        state $make_symbol($name) as " " <<entryPoint>>
+    !else
+        state $make_symbol($name) as " " <<entryPoint_hidden>>
+    !endif
 !endprocedure
 
-!procedure $exit_point($name)
-    state $make_symbol($name) as " " <<exitPoint>>
+!procedure $exit_point($name, $tags="")
+    !if $is_visible($tags)
+        state $make_symbol($name) as " " <<exitPoint>>
+    !else
+        state $make_symbol($name) as " " <<exitPoint_hidden>>
+    !endif
 !endprocedure
 
-!procedure $transition($a, $b, $t="", $colour="", $dir="", $dir_="", $note="", $suffix="", $tags="")
+!procedure $transition($a, $b, $t="", $colour="", $dir="", $dir_="", $note="", $suffix="", $tags="", $note_dir="right")
     !if $dir == ""
         !$dir = "d"
         !$dir_ = "d"
@@ -219,7 +200,7 @@ skinparam rectangle {
     !endif
 
     !if $t != ""
-        !$transition_node_name = $new_node()
+        !$transition_node = $new_node()
 
         !if $a == "[*]"
             !$a = $new_node()
@@ -235,14 +216,14 @@ skinparam rectangle {
         !$repl = "|\n|" + "<color:" + $colour + ">"
         !$t = $strrepl($t, "<br>", $repl)
 
-        state "$t" as $transition_node_name <<$stereotype>>
+        state "$t" as $transition_node <<$stereotype>>
 
         !if $note != ""
-            note right : $note
+            $add_note($note, $note_dir, $tags, $transition_node)
         !endif
 
-        $a -[$colour]$dir->o $transition_node_name
-        $transition_node_name -[$colour]$dir_-> $b
+        $a -[$colour]$dir->o $transition_node
+        $transition_node -[$colour]$dir_-> $b
     !else
         !if $a == "[*]"
             !$a = $new_node()
@@ -257,52 +238,30 @@ skinparam rectangle {
     !endif
 !endprocedure
 
-!procedure $component_link($a, $b, $t, $dir="", $dir_="")
-    !if $dir == ""
-        !$dir = "d"
-        !$dir_ = "d"
-    !else
-        !if $dir_ == ""
-            !$dir_ = $dir
-        !endif
-    !endif
-
-    !$a = $make_symbol($a)
-    !$b = $make_symbol($b)
-
-    !$transition_node_name = $a + "_to_" + $b
-
-    !while %variable_exists($transition_node_name)
-        !$transition_node_name = $transition_node_name + "_"
-    !endwhile
-
-    %set_variable_value($transition_node_name, "")
-
-    !$repl = "\n"
-    !$t = $strrepl($t, "<br>", $repl)
-
-    component "$t" as $transition_node_name <<arrow_label>>
-
-    $a -$dir-> $transition_node_name
-    $transition_node_name -$dir_-> $b
-!endprocedure
-
 !procedure $end_transition($a, $t="", $colour="#Red")
     !$b = $a + "_end"
     state $b <<end>> $colour
     $transition($a, $b, $t, $colour, $dir="r")
 !endprocedure
 
-!procedure $error_transition($a, $t="", $colour="#Red", $note="", $dir="r")
+!procedure $error_transition($a, $t="", $colour="#Red", $note="", $dir="r", $tags="")
+    !if %not($is_visible($tags))
+        !$colour = "#transparent"
+    !endif
+
     !$b = $new_node()
     state $b <<end>> $colour
-    $transition($a, $b, $t, $colour, $dir=$dir, $note=$note)
+    $transition($a, $b, $t, $colour, $dir=$dir, $note=$note, $tags=$tags)
 !endprocedure
 
-!procedure $error_input_transition($b, $t="", $colour="#Red")
+!procedure $error_input_transition($b, $t="", $colour="#Red", $tags="")
+    !if %not($is_visible($tags))
+        !$colour = "#transparent"
+    !endif
+
     !$a = "error_" + $b
     state $a <<start>> $colour
-    $transition($a, $b, $t, $colour, $dir="r")
+    $transition($a, $b, $t, $colour, $dir="r", $tags=$tags)
 !endprocedure
 
 !procedure $choice_transition($a, $b, $c, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
@@ -472,6 +431,38 @@ skinparam rectangle {
         !return $is_match($tags, "in")
     !endif
 !endfunction
+
+!procedure $add_note($text, $dir="", $tags="", $node="")
+    !if $is_visible($tags)
+        !if $dir == ""
+            note as $new_note()
+        !else
+            !if $node == ""
+                note $dir
+            !else
+                note $dir of $node
+            !endif
+        !endif
+'
+        !$text = $strrepl($text, "<br>", %chr(10))
+    !else
+        !if $dir == ""
+            note as $new_note() <<hidden>>
+        !else
+            !if $node == ""
+                note $dir <<hidden>>
+            !else
+                note $dir of $node <<hidden>>
+            !endif
+        !endif
+'
+        !$text = $strrepl($text, "<br>", %chr(10)+"<color:#transparent>")
+        !$text = "<color:#transparent>" + $text
+    !endif
+'    
+$text
+    endnote
+!endprocedure
 
 !if %variable_exists("$in")
     $tokenise($in, "in")

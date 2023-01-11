@@ -1,0 +1,53 @@
+@startuml common
+
+' Used for creating unique node names
+!$node_number = 0
+
+' Used for creating unique note names
+!$note_number = 0
+
+' Gets a unique name for a new node
+!function $new_node()
+    !$node_number = $node_number + 1
+    !return "node_" + $node_number
+!endfunction
+
+' Gets a unique name for a new node
+!function $new_note()
+    !$note_number = $note_number + 1
+    !return "note_" + $node_number
+!endfunction
+
+' Replace all instances of $find in $string with $repl and return the new string
+!function $strrepl($string, $find, $repl)
+    !$find_str_pos = %strpos($string, $find)
+
+    !if ($find_str_pos >= 0)
+        !$str1 = %substr($string, 0, $find_str_pos)
+        !$str2 = %substr($string, $find_str_pos + %strlen($find), %strlen($string))
+        !$string = $str1 + $repl + $str2
+        !$find_str_pos = %strpos($string, $find)
+
+        !if ($find_str_pos >= 0)
+            !$string = $strrepl($string, $find, $repl)
+        !endif
+    !endif
+
+    !return $string
+!endfunction
+
+!function $make_symbol($name)
+    !$symbol = $strrepl($name, " ", "_")
+    !$symbol = $strrepl($symbol, "-", "_")
+    !return $symbol
+!endfunction
+
+!procedure $title($main_title, $sub_title="")
+    !if $sub_title == ""
+        title <size:24>$main_title</size>
+    !else
+        title <size:24>$main_title</size>\n<size:16>$sub_title</size>
+    !endif
+!endprocedure
+
+@enduml

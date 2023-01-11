@@ -1,6 +1,6 @@
 @startuml component_routines
 
-!include common.iuml
+!include https://raw.githubusercontent.com/davmf/plantuml-utilities/develop/common.iuml
 
 skinparam component {
     BorderColor<<arrow label>> #transparent

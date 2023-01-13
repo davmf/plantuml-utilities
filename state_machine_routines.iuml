@@ -119,11 +119,16 @@ skinparam note {
 
     !if $entry != ""
         !$entry = $strrepl($entry, "<br>", "|\n| |")
+        !$entry = $strrepl($entry, "<br1>", "|\n| |  ")
+        !$entry = $strrepl($entry, "<br2>", "|\n| |    ")
         !$text = $text + "<#transparent,#transparent>|<r>//entry//: |" + $entry + " |"
     !endif
 
     !if $do != ""
         !$do = $strrepl($do, "<br>", "|\n| |")
+        !$do = $strrepl($do, "<br1>", "|\n| |  ")
+        !$do = $strrepl($do, "<br2>", "|\n| |    ")
+
         !if $text != ""
             !$text = $text + "\n"
         !else
@@ -135,6 +140,9 @@ skinparam note {
 
     !if $exit != ""
         !$exit = $strrepl($exit, "<br>", "|\n| |")
+        !$exit = $strrepl($exit, "<br1>", "|\n| |  ")
+        !$exit = $strrepl($exit, "<br2>", "|\n| |    ")
+
         !if $text != ""
             !$text = $text + "\n"
         !else
@@ -175,7 +183,15 @@ skinparam note {
     !endif
 !endprocedure
 
-!procedure $transition($a, $b, $t="", $colour="", $dir="", $dir_="", $note="", $suffix="", $tags="", $note_dir="right")
+!procedure $join($name, $tags="")
+    !if $is_visible($tags)
+        state $make_symbol($name) as " " <<join>>
+    !else
+        state $make_symbol($name) as " " <<join_hidden>>
+    !endif
+!endprocedure
+
+!procedure $transition($a, $b, $t="", $colour="", $dir="", $dir_="", $note="", $tags="", $note_dir="right")
     !if $dir == ""
         !$dir = "d"
         !$dir_ = "d"
@@ -215,6 +231,10 @@ skinparam note {
         !$t = "<#transparent,#transparent>|<color:" + $colour + ">" + $t + "|"
         !$repl = "|\n|" + "<color:" + $colour + ">"
         !$t = $strrepl($t, "<br>", $repl)
+        !$repl = "|\n|" + "<color:" + $colour + ">  "
+        !$t = $strrepl($t, "<br1>", $repl)
+        !$repl = "|\n|" + "<color:" + $colour + ">    "
+        !$t = $strrepl($t, "<br2>", $repl)
 
         state "$t" as $transition_node <<$stereotype>>
 
@@ -278,17 +298,22 @@ skinparam note {
     $transition($choice, $c, $t3, $colour3, $dir=$dir_, $tags=$tags3)
 !endprocedure
 
-!procedure $choice_transition_2($a, $b, $c, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $suffix="")
-    !if $a == "[*]"
-        !$choice = "start_choice" + $suffix
+' Choice transition with same target for both choices
+!procedure $common_choice_transition($a, $b, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
+    !$choice = $new_node()
+    !$join_node = $new_node()
+    $join($join_node, $tags1)
+
+    !if $is_visible($tags2) || $is_visible($tags3)
+        state $choice <<choice>>
     !else
-        !$choice = $a + "_choice" + $suffix
+        state $choice <<choice>> #transparent##transparent
     !endif
-    
-    state $choice <<choice>>
-    $transition($a, $choice, $t1, $colour1)
-    $transition($choice, $b, $t2, $colour2, $dir="l", $dir_="d")
-    $transition($choice, $c, $t3, $colour3, $dir="r", $dir_="d")
+
+    $transition($a, $choice, $t1, $colour1, $tags=$tags1)
+    $transition($choice, $join_node, $t2, $colour2, $dir=$dir, $tags=$tags2)
+    $transition($choice, $join_node, $t3, $colour3, $dir=$dir_, $tags=$tags3)
+    $transition($join_node, $b, $colour=$colour1, $dir=$dir_, $tags=$tags1)
 !endprocedure
 
 !procedure $choice_choice_transition($a, $b, $c, $d, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="")
@@ -367,6 +392,18 @@ skinparam note {
 
 !function $guard_action($g, $a)
     !return $guard($g)+$br()+$a
+!endfunction
+
+!function $action1($text)
+    !return "<br1>" + $text
+!endfunction
+
+!function $action2($text)
+    !return "<br2>" + $text
+!endfunction
+
+!function $action($text)
+    !return " /<br1>" + $text
 !endfunction
 
 !procedure $tokenise($token_string, $token_prefix="token", $delimiter=" ")

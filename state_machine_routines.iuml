@@ -191,6 +191,14 @@ skinparam note {
     !endif
 !endprocedure
 
+!procedure $fork($name, $tags="")
+    !if $is_visible($tags)
+        state $make_symbol($name) as " " <<fork>>
+    !else
+        state $make_symbol($name) as " " <<fork_hidden>>
+    !endif
+!endprocedure
+
 !procedure $transition($a, $b, $t="", $colour="", $dir="", $dir_="", $note="", $tags="", $note_dir="right")
     !if $dir == ""
         !$dir = "d"
@@ -282,6 +290,14 @@ skinparam note {
     !$a = "error_" + $b
     state $a <<start>> $colour
     $transition($a, $b, $t, $colour, $dir="r", $tags=$tags)
+!endprocedure
+
+!procedure $input_node($node, $colour, $tags="")
+    state $node <<start>> $colour
+!endprocedure
+
+!procedure $output_node($node, $colour, $tags="")
+    state $node <<end>> $colour
 !endprocedure
 
 !procedure $choice_transition($a, $b, $c, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")

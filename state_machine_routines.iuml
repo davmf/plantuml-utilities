@@ -390,22 +390,13 @@ skinparam note {
         state $choice3 <<choice>> #transparent##transparent
     !endif
 
-    $transition($a, $choice1, $t1, $colour1, $tags=$tags1)
-    $transition($choice1, $b, $t2, $colour2, $tags=$tags2)
-    $transition($choice1, $choice2, $t3, $colour3, $tags=$tags3)
-    $transition($choice2, $c, $t4, $colour4, $tags=$tags4)
-    $transition($choice2, $choice3, $t5, $colour5, $tags=$tags5)
-    $transition($choice3, $d, $t6, $colour6, $tags=$tags6)
-    $transition($choice3, $e, $t7, $colour7, $tags=$tags7)
-!endprocedure
-
-!procedure $three_choice_transition($a, $b, $c, $d, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="")
-    !$choice1 = $a + "_choice1"
-    state $choice1 <<choice>>
-    $transition($a, $choice1, $t1, $colour1)
-    $transition($choice1, $b, $t2, $colour2, $dir="l", $dir_="d")
-    $transition($choice1, $c, $t3, $colour3)
-    $transition($choice1, $d, $t4, $colour4, $dir="r", $dir_="d")
+    $transition($a, $t1, $choice1, $colour1, $tags=$tags1)
+    $transition($choice1, $t2, $b, $colour2, $tags=$tags2)
+    $transition($choice1, $t3, $choice2, $colour3, $tags=$tags3)
+    $transition($choice2, $t4, $c, $colour4, $tags=$tags4)
+    $transition($choice2, $t5, $choice3, $colour5, $tags=$tags5)
+    $transition($choice3, $t6, $d, $colour6, $tags=$tags6)
+    $transition($choice3, $t7, $e, $colour7, $tags=$tags7)
 !endprocedure
 
 !procedure $choice_end_transition($a, $c, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="")

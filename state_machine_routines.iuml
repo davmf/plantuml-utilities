@@ -4,7 +4,12 @@
 
 scale 4096 height
 
-right footer Updated %date("yyyy.MM.dd' at 'HH:mm")
+/' Provision for footer with latest date
+ ' However, reduces version control usability as it
+ ' updates the output artifact every build, regardless of
+ ' whether the input has changed
+ '/
+'right footer Updated %date("yyyy.MM.dd' at 'HH:mm")
 
 hide empty description
 
@@ -199,7 +204,7 @@ skinparam note {
     !endif
 !endprocedure
 
-!procedure $transition($a, $b, $t="", $colour="", $dir="", $dir_="", $note="", $tags="", $note_dir="right")
+!procedure $transition($a, $t="", $b="", $colour="", $dir="", $dir_="", $note="", $tags="", $note_dir="right")
     !if $dir == ""
         !$dir = "d"
         !$dir_ = "d"
@@ -300,7 +305,7 @@ skinparam note {
     state $node <<end>> $colour
 !endprocedure
 
-!procedure $choice_transition($a, $b, $c, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
+!procedure $choice_transition($a, $t1="", $b="", $c="",  $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
     !$choice = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -309,13 +314,13 @@ skinparam note {
         state $choice <<choice>> #transparent##transparent
     !endif
 
-    $transition($a, $choice, $t1, $colour1, $tags=$tags1)
-    $transition($choice, $b, $t2, $colour2, $dir=$dir, $tags=$tags2)
-    $transition($choice, $c, $t3, $colour3, $dir=$dir_, $tags=$tags3)
+    $transition($a, $t1, $choice, $colour1, $tags=$tags1)
+    $transition($choice, $t2, $b, $colour2, $dir=$dir, $tags=$tags2)
+    $transition($choice, $t3, $c, $colour3, $dir=$dir_, $tags=$tags3)
 !endprocedure
 
 ' Choice transition with same target for both choices
-!procedure $common_choice_transition($a, $b, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
+!procedure $common_choice_transition($a, $t1="", $b="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
     !$choice = $new_node()
     !$join_node = $new_node()
     $join($join_node, $tags1)
@@ -326,13 +331,13 @@ skinparam note {
         state $choice <<choice>> #transparent##transparent
     !endif
 
-    $transition($a, $choice, $t1, $colour1, $tags=$tags1)
-    $transition($choice, $join_node, $t2, $colour2, $dir=$dir, $tags=$tags2)
-    $transition($choice, $join_node, $t3, $colour3, $dir=$dir_, $tags=$tags3)
-    $transition($join_node, $b, $colour=$colour1, $dir=$dir_, $tags=$tags1)
+    $transition($a, $t1, $choice, $colour1, $tags=$tags1)
+    $transition($choice, $t2, $join_node, $colour2, $dir=$dir, $tags=$tags2)
+    $transition($choice, $t3, $join_node, $colour3, $dir=$dir_, $tags=$tags3)
+    $transition($join_node, $t="", $b, $colour=$colour1, $dir=$dir_, $tags=$tags1)
 !endprocedure
 
-!procedure $choice_choice_transition($a, $b, $c, $d, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="")
+!procedure $choice_choice_transition($a, $t1="", $b="", $c="", $d="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="")
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -349,11 +354,11 @@ skinparam note {
         state $choice2 <<choice>> #transparent##transparent
     !endif
 
-    $transition($a, $choice1, $t1, $colour1, $tags=$tags1)
-    $transition($choice1, $b, $t2, $colour2, $tags=$tags2)
-    $transition($choice1, $choice2, $t3, $colour3, $tags=$tags3)
-    $transition($choice2, $c, $t4, $colour4, $tags=$tags4)
-    $transition($choice2, $d, $t5, $colour5, $tags=$tags5)
+    $transition($a, $t1, $choice1, $colour1, $tags=$tags1)
+    $transition($choice1, $t2, $b, $colour2, $tags=$tags2)
+    $transition($choice1, $t3, $choice2, $colour3, $tags=$tags3)
+    $transition($choice2, $t4, $c, $colour4, $tags=$tags4)
+    $transition($choice2, $t5, $d, $colour5, $tags=$tags5)
 !endprocedure
 
 !procedure $choice_choice_choice_transition($a, $b, $c, $d, $e, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $t6="", $colour6="", $t7="", $colour7="")
@@ -402,8 +407,7 @@ skinparam note {
 !endprocedure
 
 !procedure $draft_labels($font_size=72)
-    center header <font color=red size=$font_size>""**DRAFT                         DRAFT**""
-    center footer <font color=red size=$font_size>""**DRAFT                         DRAFT**""
+    center header <font color=red size=$font_size>""**DRAFT     DRAFT     DRAFT     DRAFT**""
 !endprocedure
 
 !function $guard_action($g, $a)

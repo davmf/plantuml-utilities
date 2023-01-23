@@ -288,7 +288,7 @@ skinparam note {
 
     !$b = $new_node()
     state $b <<end>> $colour
-    $transition($a, $b, $t, $colour, $dir=$dir, $note=$note, $tags=$tags)
+    $transition($a, $t, $b, $colour, $dir=$dir, $note=$note, $tags=$tags)
 !endprocedure
 
 !procedure $error_input_transition($b, $t="", $colour="#Red", $tags="")
@@ -298,7 +298,7 @@ skinparam note {
 
     !$a = "error_" + $b
     state $a <<start>> $colour
-    $transition($a, $b, $t, $colour, $dir="r", $tags=$tags)
+    $transition($a, $t, $b, $colour, $dir="r", $tags=$tags)
 !endprocedure
 
 !procedure $input_node($node, $colour, $tags="")

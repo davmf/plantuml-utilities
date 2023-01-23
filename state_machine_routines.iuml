@@ -36,6 +36,10 @@ skinparam note {
     BorderColor<<hidden>> #transparent
 }
 
+!procedure $add_path($path)
+    left footer $path
+!endprocedure
+
 !function $super_state($name, $tags="")
     !if $is_visible($tags)
         !return "state " + %chr(34) + "<size:16>**" + $name + "**" + %chr(34) + " as " + $make_symbol($name)
@@ -305,7 +309,7 @@ skinparam note {
     state $node <<end>> $colour
 !endprocedure
 
-!procedure $choice_transition($a, $t1="", $b="", $c="",  $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
+!procedure $transitions_1_choice($a, $t1="", $b="", $c="",  $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
     !$choice = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -320,7 +324,7 @@ skinparam note {
 !endprocedure
 
 ' Choice transition with same target for both choices
-!procedure $common_choice_transition($a, $t1="", $b="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
+!procedure $transitions_1_choice_common($a, $t1="", $b="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
     !$choice = $new_node()
     !$join_node = $new_node()
     $join($join_node, $tags1)
@@ -337,7 +341,7 @@ skinparam note {
     $transition($join_node, $t="", $b, $colour=$colour1, $dir=$dir_, $tags=$tags1)
 !endprocedure
 
-!procedure $choice_choice_transition($a, $t1="", $b="", $c="", $d="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="")
+!procedure $transitions_2_choices($a, $t1="", $b="", $c="", $d="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="")
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -361,7 +365,7 @@ skinparam note {
     $transition($choice2, $t5, $d, $colour5, $tags=$tags5)
 !endprocedure
 
-!procedure $choice_choice_choice_transition($a, $b, $c, $d, $e, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $t6="", $colour6="", $t7="", $colour7="")
+!procedure $transitions_3_choices($a, $b, $c, $d, $e, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $t6="", $colour6="", $t7="", $colour7="")
     !$choice1 = $new_node()
     !$choice2 = $new_node()
     !$choice3 = $new_node()

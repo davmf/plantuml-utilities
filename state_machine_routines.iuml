@@ -365,20 +365,38 @@ skinparam note {
     $transition($choice2, $t5, $d, $colour5, $tags=$tags5)
 !endprocedure
 
-!procedure $transitions_3_choices($a, $b, $c, $d, $e, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $t6="", $colour6="", $t7="", $colour7="")
+!procedure $transitions_3_choices($a, $t1="", $b="", $c="", $d="", $e="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $t6="", $colour6="", $t7="", $colour7="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="")
     !$choice1 = $new_node()
+
+    !if $is_visible($tags2) || $is_visible($tags3)
+        state $choice1 <<choice>>
+    !else
+        state $choice1 <<choice>> #transparent##transparent
+    !endif
+
     !$choice2 = $new_node()
+
+    !if $is_visible($tags4) || $is_visible($tags5)
+        state $choice2 <<choice>>
+    !else
+        state $choice2 <<choice>> #transparent##transparent
+    !endif
+
     !$choice3 = $new_node()
-    state $choice1 <<choice>>
-    state $choice2 <<choice>>
-    state $choice3 <<choice>>
-    $transition($a, $choice1, $t1, $colour1)
-    $transition($choice1, $b, $t2, $colour2)
-    $transition($choice1, $choice2, $t3, $colour3)
-    $transition($choice2, $c, $t4, $colour4)
-    $transition($choice2, $choice3, $t5, $colour5)
-    $transition($choice3, $d, $t6, $colour6)
-    $transition($choice3, $e, $t7, $colour7)
+
+    !if $is_visible($tags6) || $is_visible($tags7)
+        state $choice3 <<choice>>
+    !else
+        state $choice3 <<choice>> #transparent##transparent
+    !endif
+
+    $transition($a, $choice1, $t1, $colour1, $tags=$tags1)
+    $transition($choice1, $b, $t2, $colour2, $tags=$tags2)
+    $transition($choice1, $choice2, $t3, $colour3, $tags=$tags3)
+    $transition($choice2, $c, $t4, $colour4, $tags=$tags4)
+    $transition($choice2, $choice3, $t5, $colour5, $tags=$tags5)
+    $transition($choice3, $d, $t6, $colour6, $tags=$tags6)
+    $transition($choice3, $e, $t7, $colour7, $tags=$tags7)
 !endprocedure
 
 !procedure $three_choice_transition($a, $b, $c, $d, $t1="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="")

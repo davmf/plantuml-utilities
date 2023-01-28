@@ -1,0 +1,31 @@
+@startuml demo_improved_all
+
+!include demo_improved.puml
+
+@enduml
+
+@startuml demo_improved_s1
+
+!$in = "s1"
+
+!include demo_improved.puml
+
+@enduml
+
+@startuml demo_improved_s2
+
+!$in = "s2"
+
+!include demo_improved.puml
+
+@enduml
+
+@startuml demo_improved_s3
+
+!$in = "s3"
+
+!include demo_improved.puml
+
+@enduml
+
+

@@ -1,6 +1,8 @@
 @startuml component_routines
 
-!include common.iuml
+!include https://raw.githubusercontent.com/davmf/plantuml-utilities/develop/common.iuml
+
+right footer Updated %date("yyyy.MM.dd' at 'HH:mm")
 
 skinparam component {
     BorderColor<<arrow label>> #transparent

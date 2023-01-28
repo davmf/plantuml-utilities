@@ -1,0 +1,43 @@
+@startuml demo_standard
+
+state Top {
+
+    state State_A
+    state State_B
+    state State_C
+    state State_D
+    state State_E
+    state State_F
+    state State_G
+
+    state c1 <<choice>>
+    state c2 <<choice>>
+    state c3 <<choice>>
+    state c4 <<choice>>
+
+    State_F --> State_C : long transition label
+    State_F --> State_G : medium transition label
+    State_G --> Top : long transition label
+    State_D --> State_E : long transition label
+    State_E --> State_D : long transition label
+    State_E --> State_G : medium transition label
+    State_C --> State_G : short transition label
+    State_B --> State_F : long transition label
+    Top --> State_G : long transition label
+    Top --> State_A : short transition label
+    Top --> State_G : medium transition label
+    State_A --> State_G : medium transition label
+    State_C --> c1 : short transition label
+    c1 --> State_C : short transition label
+    c1 --> State_D : short transition label
+    State_A --> c2 : long transition label
+    c2 --> State_A : short transition label
+    c2 --> State_G : short transition label
+    State_F --> c3 : long transition label
+    c3 --> State_D : short transition label
+    c3 --> c4 : short transition label
+    c4 --> State_C : short transition label
+    c4 --> State_G : short transition label
+}
+
+@enduml

@@ -24,11 +24,18 @@ skinparam state {
     BorderColor<<transition>> transparent
     BackgroundColor<<transition>> #F8F8F8
     BorderColor<<hidden>> transparent
+    BorderColor<<transition_hidden>> transparent
     BackgroundColor<<hidden>> transparent
+    BackgroundColor<<transition_hidden>> transparent
     FontColor<<hidden>> transparent
-    FontSize<<transition>> 11
+    FontColor<<transition_hidden>> transparent
+    FontSize<<transition>> 10
+    FontSize<<transition_hidden>> 10
     FontSize 12
 }
+
+skinParam RoundCorner<<transition>> 0
+skinParam RoundCorner<<transition_hidden>> 0
 
 skinparam note {
     FontColor<<hidden>> #transparent
@@ -224,7 +231,7 @@ skinparam note {
     !if $is_visible($tags)
         !$stereotype = "transition"
     !else
-        !$stereotype = "hidden"
+        !$stereotype = "transition_hidden"
         !$colour = "#transparent"
     !endif
 
@@ -433,6 +440,10 @@ skinparam note {
 
 !function $action($text)
     !return " /<br1>" + $text
+!endfunction
+
+!function $missing_actions()
+    !return $action1("⋮")
 !endfunction
 
 !procedure $tokenise($token_string, $token_prefix="token", $delimiter=" ")

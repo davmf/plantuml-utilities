@@ -24,11 +24,18 @@ skinparam state {
     BorderColor<<transition>> transparent
     BackgroundColor<<transition>> #F8F8F8
     BorderColor<<hidden>> transparent
+    BorderColor<<transition_hidden>> transparent
     BackgroundColor<<hidden>> transparent
+    BackgroundColor<<transition_hidden>> transparent
     FontColor<<hidden>> transparent
-    FontSize<<transition>> 11
+    FontColor<<transition_hidden>> transparent
+    FontSize<<transition>> 10
+    FontSize<<transition_hidden>> 10
     FontSize 12
 }
+
+skinParam RoundCorner<<transition>> 0
+skinParam RoundCorner<<transition_hidden>> 0
 
 skinparam note {
     FontColor<<hidden>> #transparent
@@ -204,6 +211,16 @@ skinparam note {
     !endif
 !endprocedure
 
+/'┌────┐
+  │ $a │
+  └─┬──┘
+    │
+   $t
+    │
+  ┌─┴──┐
+  │ $b │
+  └────┘
+ '/
 !procedure $transition($a, $t="", $b="", $colour="", $dir="", $dir_="", $note="", $tags="", $note_dir="right")
     !if $dir == ""
         !$dir = "d"
@@ -224,7 +241,7 @@ skinparam note {
     !if $is_visible($tags)
         !$stereotype = "transition"
     !else
-        !$stereotype = "hidden"
+        !$stereotype = "transition_hidden"
         !$colour = "#transparent"
     !endif
 
@@ -271,6 +288,83 @@ skinparam note {
     !endif
 !endprocedure
 
+!procedure $transition_test($a, $t="", $b="", $colour="", $dir="", $dir_="", $note="", $tags="", $note_dir="right", $test="")
+    !assert $test != "": "Test is empty!  Must have a test."
+
+    !if $dir == ""
+        !$dir = "d"
+        !$dir_ = "d"
+    !else
+        !if $dir_ == ""
+            !$dir_ = $dir
+        !endif
+    !endif
+
+    !$a = $make_symbol($a)
+    !$b = $make_symbol($b)
+
+    !if $colour == ""
+        !$colour = "#Green"
+    !endif
+
+    !if $is_visible($tags)
+        !$stereotype = "transition"
+    !else
+        !$stereotype = "transition_hidden"
+        !$colour = "#transparent"
+    !endif
+
+    !$test_node = $new_node()
+
+    !if $t != ""
+        !$transition_node = $new_node()
+
+        !if $a == "[*]"
+            !$a = $new_node()
+            state $a <<start>> $colour
+        !else
+            !if $b == "[*]"
+                !$b = $new_node()
+                state $b <<end>> $colour
+            !endif
+        !endif
+
+        !$t = "<#transparent,#transparent>|<color:" + $colour + ">" + $t + "|"
+        !$repl = "|\n|" + "<color:" + $colour + ">"
+        !$t = $strrepl($t, "<br>", $repl)
+        !$repl = "|\n|" + "<color:" + $colour + ">  "
+        !$t = $strrepl($t, "<br1>", $repl)
+        !$repl = "|\n|" + "<color:" + $colour + ">    "
+        !$t = $strrepl($t, "<br2>", $repl)
+
+        !$test = "<color:" + $colour + ">[ " + $test + " ]</color>"
+
+        state "$t" as $transition_node <<$stereotype>>
+        state "$test" as $test_node <<$stereotype>>
+
+        !if $note != ""
+            $add_note($note, $note_dir, $tags, $transition_node)
+        !endif
+
+        $a -[$colour]$dir->o $transition_node
+        $transition_node -[$colour]$dir->o $test_node
+        $test_node -[$colour]$dir_-> $b
+    !else
+        !if $a == "[*]"
+            !$a = $new_node()
+            state $a <<start>> $colour
+        !else
+            !if $b == "[*]"
+                !$b = $new_node()
+                state $b <<end>> $colour
+            !endif
+        !endif
+
+        $a -[$colour]$dir-> $test_node
+        $test_node -[$colour]$dir_-> $b
+    !endif
+!endprocedure
+
 !procedure $end_transition($a, $t="", $colour="#Red")
     !$b = $a + "_end"
     state $b <<end>> $colour
@@ -305,7 +399,26 @@ skinparam note {
     state $node <<end>> $colour
 !endprocedure
 
-!procedure $transitions_1_choice($a, $t1="", $b="", $c="",  $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
+
+
+/'+-----+
+  │ $a  |
+  +--+--+
+     │
+    $t1 / $colour1
+     │
+   $test
+     │
+     +-------+
+     |       |
+    $t2 / $colour2     $t3 / $colour3
+     |       |
+   +--+--+ +----+
+   │ $b │ | $c |
+   +────+ +----+
+ '/
+
+!procedure $transitions_1_choice($a, $t1="", $b="", $c="", $colour1="", $t2=$true(), $colour2="", $t3=$false(), $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="", $test="")
     !$choice = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -314,13 +427,13 @@ skinparam note {
         state $choice <<choice>> #transparent##transparent
     !endif
 
-    $transition($a, $t1, $choice, $colour1, $tags=$tags1)
+    $transition_test($a, $t1, $choice, $colour1, $tags=$tags1, $test=$test)
     $transition($choice, $t2, $b, $colour2, $dir=$dir, $tags=$tags2)
     $transition($choice, $t3, $c, $colour3, $dir=$dir_, $tags=$tags3)
 !endprocedure
 
 ' Choice transition with same target for both choices
-!procedure $transitions_1_choice_common($a, $t1="", $b="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
+!procedure $transitions_1_choice_common($a, $t1="", $b="", $colour1="", $t2=$true(), $colour2="", $t3=$false(), $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="")
     !$choice = $new_node()
     !$join_node = $new_node()
     $join($join_node, $tags1)
@@ -337,7 +450,7 @@ skinparam note {
     $transition($join_node, $t="", $b, $colour=$colour1, $dir=$dir_, $tags=$tags1)
 !endprocedure
 
-!procedure $transitions_2_choices($a, $t1="", $b="", $c="", $d="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="")
+!procedure $transitions_2_choices($a, $t1="", $b="", $c="", $d="", $colour1="", $t2=$true(), $colour2="", $t3=$false(), $colour3="", $t4=$true(), $colour4="", $t5=$false(), $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $test_a="", $test_b="")
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -354,14 +467,14 @@ skinparam note {
         state $choice2 <<choice>> #transparent##transparent
     !endif
 
-    $transition($a, $t1, $choice1, $colour1, $tags=$tags1)
+    $transition_test($a, $t1, $choice1, $colour1, $tags=$tags1, $test=$test_a)
     $transition($choice1, $t2, $b, $colour2, $tags=$tags2)
-    $transition($choice1, $t3, $choice2, $colour3, $tags=$tags3)
+    $transition_test($choice1, $t3, $choice2, $colour3, $tags=$tags3, $test=$test_b)
     $transition($choice2, $t4, $c, $colour4, $tags=$tags4)
     $transition($choice2, $t5, $d, $colour5, $tags=$tags5)
 !endprocedure
 
-!procedure $transitions_3_choices($a, $t1="", $b="", $c="", $d="", $e="", $colour1="", $t2="", $colour2="", $t3="", $colour3="", $t4="", $colour4="", $t5="", $colour5="", $t6="", $colour6="", $t7="", $colour7="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="")
+!procedure $transitions_3_choices($a, $t1="", $b="", $c="", $d="", $e="", $colour1="", $t2=$true(), $colour2="", $t3=$false(), $colour3="", $t4=$true(), $colour4="", $t5=$false(), $colour5="", $t6=$true(), $colour6="", $t7=$false(), $colour7="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $test_a="", $test_b="", $test_c="")
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -386,11 +499,11 @@ skinparam note {
         state $choice3 <<choice>> #transparent##transparent
     !endif
 
-    $transition($a, $t1, $choice1, $colour1, $tags=$tags1)
+    $transition_test($a, $t1, $choice1, $colour1, $tags=$tags1, $test=$test_a)
     $transition($choice1, $t2, $b, $colour2, $tags=$tags2)
-    $transition($choice1, $t3, $choice2, $colour3, $tags=$tags3)
+    $transition_test($choice1, $t3, $choice2, $colour3, $tags=$tags3, $test=$test_b)
     $transition($choice2, $t4, $c, $colour4, $tags=$tags4)
-    $transition($choice2, $t5, $choice3, $colour5, $tags=$tags5)
+    $transition_test($choice2, $t5, $choice3, $colour5, $tags=$tags5, $test=$test_c)
     $transition($choice3, $t6, $d, $colour6, $tags=$tags6)
     $transition($choice3, $t7, $e, $colour7, $tags=$tags7)
 !endprocedure
@@ -433,6 +546,10 @@ skinparam note {
 
 !function $action($text)
     !return " /<br1>" + $text
+!endfunction
+
+!function $missing_actions()
+    !return $action1("⋮")
 !endfunction
 
 !procedure $tokenise($token_string, $token_prefix="token", $delimiter=" ")

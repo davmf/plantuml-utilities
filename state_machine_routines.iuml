@@ -221,16 +221,7 @@ skinparam note {
   │ $b │
   └────┘
  '/
-!procedure $transition($a, $t="", $b="", $colour="", $dir="", $dir_="", $note="", $tags="", $note_dir="right")
-    !if $dir == ""
-        !$dir = "d"
-        !$dir_ = "d"
-    !else
-        !if $dir_ == ""
-            !$dir_ = $dir
-        !endif
-    !endif
-
+!procedure $transition($a, $t="", $b="", $colour="", $note="", $tags="", $note_dir="right")
     !$a = $make_symbol($a)
     !$b = $make_symbol($b)
 
@@ -272,8 +263,8 @@ skinparam note {
             $add_note($note, $note_dir, $tags, $transition_node)
         !endif
 
-        $a -[$colour]$dir->o $transition_node
-        $transition_node -[$colour]$dir_-> $b
+        $a -[$colour]->o $transition_node
+        $transition_node -[$colour]-> $b
     !else
         !if $a == "[*]"
             !$a = $new_node()
@@ -284,21 +275,12 @@ skinparam note {
                 state $b <<end>> $colour
             !endif
         !endif
-        $a -[$colour]$dir-> $b
+        $a -[$colour]-> $b
     !endif
 !endprocedure
 
-!procedure $transition_test($a, $t="", $b="", $colour="", $dir="", $dir_="", $note="", $tags="", $note_dir="right", $test="")
+!procedure $transition_test($a, $t="", $b="", $colour="", $note="", $tags="", $note_dir="right", $test="")
     !assert $test != "": "Test is empty!  Must have a test."
-
-    !if $dir == ""
-        !$dir = "d"
-        !$dir_ = "d"
-    !else
-        !if $dir_ == ""
-            !$dir_ = $dir
-        !endif
-    !endif
 
     !$a = $make_symbol($a)
     !$b = $make_symbol($b)
@@ -337,6 +319,7 @@ skinparam note {
         !$repl = "|\n|" + "<color:" + $colour + ">    "
         !$t = $strrepl($t, "<br2>", $repl)
 
+        !$test = $strrepl($test, "<br>", "</color>\n<color:" + $colour + ">")
         !$test = "<color:" + $colour + ">[ " + $test + " ]</color>"
 
         state "$t" as $transition_node <<$stereotype>>
@@ -346,9 +329,9 @@ skinparam note {
             $add_note($note, $note_dir, $tags, $transition_node)
         !endif
 
-        $a -[$colour]$dir->o $transition_node
-        $transition_node -[$colour]$dir->o $test_node
-        $test_node -[$colour]$dir_-> $b
+        $a -[$colour]->o $transition_node
+        $transition_node -[$colour]->o $test_node
+        $test_node -[$colour]-> $b
     !else
         !if $a == "[*]"
             !$a = $new_node()
@@ -360,25 +343,25 @@ skinparam note {
             !endif
         !endif
 
-        $a -[$colour]$dir-> $test_node
-        $test_node -[$colour]$dir_-> $b
+        $a -[$colour]-> $test_node
+        $test_node -[$colour]-> $b
     !endif
 !endprocedure
 
 !procedure $end_transition($a, $t="", $colour="#Red")
     !$b = $a + "_end"
     state $b <<end>> $colour
-    $transition($a, $t, $b, $colour, $dir="r")
+    $transition($a, $t, $b, $colour)
 !endprocedure
 
-!procedure $error_transition($a, $t="", $colour="#Red", $note="", $dir="r", $tags="")
+!procedure $error_transition($a, $t="", $colour="#Red", $note="", $tags="")
     !if %not($is_visible($tags))
         !$colour = "#transparent"
     !endif
 
     !$b = $new_node()
     state $b <<end>> $colour
-    $transition($a, $t, $b, $colour, $dir=$dir, $note=$note, $tags=$tags)
+    $transition($a, $t, $b, $colour, $note=$note, $tags=$tags)
 !endprocedure
 
 !procedure $error_input_transition($b, $t="", $colour="#Red", $tags="")
@@ -399,26 +382,29 @@ skinparam note {
     state $node <<end>> $colour
 !endprocedure
 
-
-
-/'+-----+
-  │ $a  |
-  +--+--+
-     │
-    $t1 / $colour1
-     │
-   $test
-     │
-     +-------+
-     |       |
-    $t2 / $colour2     $t3 / $colour3
-     |       |
-   +--+--+ +----+
-   │ $b │ | $c |
-   +────+ +----+
- '/
-
-!procedure $transitions_1_choice($a, $t1="", $b="", $c="", $colour1="", $t2=$true(), $colour2="", $t3=$false(), $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="", $test="")
+' Create transitions to two other states via a choice
+'
+'        +-----+                              
+'        | $a  |                              
+'        +-----+                              
+'           |                                 
+' $t1, $colour1, $tags1                       
+'           |                                 
+'         $test1
+'           |                                 
+'           V
+'          / \                                
+'         |   ---------------------+          
+'          \ /                     |          
+'           |                      |          
+' $t2=$false(), $colour2, $tags2  $t3=$true(), $colour3, $tags3
+'           |                      |          
+'           V                      V          
+'        +-----+                +-----+       
+'        | $b  |                | $c  |       
+'        +-----+                +-----+       
+'
+!procedure $transitions_1_choice($a, $t1="", $b="", $c="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="", $test1="")
     !$choice = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -427,9 +413,9 @@ skinparam note {
         state $choice <<choice>> #transparent##transparent
     !endif
 
-    $transition_test($a, $t1, $choice, $colour1, $tags=$tags1, $test=$test)
-    $transition($choice, $t2, $b, $colour2, $dir=$dir, $tags=$tags2)
-    $transition($choice, $t3, $c, $colour3, $dir=$dir_, $tags=$tags3)
+    $transition_test($a, $t1, $choice, $colour1, $tags=$tags1, $test=$test1)
+    $transition($choice, $t2, $b, $colour2, $tags=$tags2)
+    $transition($choice, $t3, $c, $colour3, $tags=$tags3)
 !endprocedure
 
 ' Choice transition with same target for both choices
@@ -450,7 +436,39 @@ skinparam note {
     $transition($join_node, $t="", $b, $colour=$colour1, $dir=$dir_, $tags=$tags1)
 !endprocedure
 
-!procedure $transitions_2_choices($a, $t1="", $b="", $c="", $d="", $colour1="", $t2=$true(), $colour2="", $t3=$false(), $colour3="", $t4=$true(), $colour4="", $t5=$false(), $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $test_a="", $test_b="")
+' Create transitions to three other states via two choices
+'
+'        +-----+                              
+'        | $a  |                              
+'        +-----+                              
+'           |                                 
+' $t1, $colour1, $tags1                       
+'           |                                 
+'        $test1                               
+'           |                                 
+'           V
+'          / \                                
+'         |   ---------------------+          
+'          \ /                     |          
+'           |                      |          
+' $t2=$false(), $colour2, $tags2  $t3=$true(), $colour3, $tags3
+'           |                      |          
+'           V                   $test3
+'        +-----+                   |
+'        | $b  |                   V
+'        +-----+                  / \                                
+'                                |   ---------------------+          
+'                                 \ /                     |          
+'                                  |                      |          
+'                        $t4=$false(), $colour4, $tags4  $t5=$true(), $colour5, $tags5
+'                                  |                      |          
+'                                  V                      V          
+'                               +-----+                +-----+       
+'                               | $c  |                | $d  |       
+'                               +-----+                +-----+       
+'                       
+'
+!procedure $transitions_2_choices($a, $t1="", $b="", $c="", $d="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $test1="", $test3="")
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -467,14 +485,54 @@ skinparam note {
         state $choice2 <<choice>> #transparent##transparent
     !endif
 
-    $transition_test($a, $t1, $choice1, $colour1, $tags=$tags1, $test=$test_a)
+    $transition_test($a, $t1, $choice1, $colour1, $tags=$tags1, $test=$test1)
     $transition($choice1, $t2, $b, $colour2, $tags=$tags2)
-    $transition_test($choice1, $t3, $choice2, $colour3, $tags=$tags3, $test=$test_b)
+    $transition_test($choice1, $t3, $choice2, $colour3, $tags=$tags3, $test=$test3)
     $transition($choice2, $t4, $c, $colour4, $tags=$tags4)
     $transition($choice2, $t5, $d, $colour5, $tags=$tags5)
 !endprocedure
 
-!procedure $transitions_3_choices($a, $t1="", $b="", $c="", $d="", $e="", $colour1="", $t2=$true(), $colour2="", $t3=$false(), $colour3="", $t4=$true(), $colour4="", $t5=$false(), $colour5="", $t6=$true(), $colour6="", $t7=$false(), $colour7="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $test_a="", $test_b="", $test_c="")
+' Create transitions to four other states via three choices
+'
+'        +-----+                              
+'        | $a  |                              
+'        +-----+                              
+'           |                                 
+' $t1, $colour1, $tags1                       
+'           |                                 
+'        $test1
+'           |                                 
+'           V
+'          / \                                
+'         |   ---------------------+          
+'          \ /                     |          
+'           |                      |          
+' $t2=$false(), $colour2, $tags2  $t3=$true(), $colour3, $tags3
+'           |                      |          
+'           V                   $test3
+'        +-----+                   |
+'        | $b  |                   V
+'        +-----+                  / \                                
+'                                |   ---------------------+          
+'                                 \ /                     |          
+'                                  |                      |          
+'                        $t4=$false(), $colour4, $tags4  $t5=$true(), $colour5, $tags5
+'                                  |                      |          
+'                                  V                   $test5
+'                               +-----+                   |       
+'                               | $c  |                   V       
+'                               +-----+                  / \                      
+'                                                       |   ---------------------+
+'                                                        \ /                     |
+'                                                         |                      |          
+'                                               $t6=$false(), $colour6, $tags6  $t7=$true(), $colour7, $tags7
+'                                                         |                      |          
+'                                                         v                      v          
+'                                                      +-----+                +-----+       
+'                                                      | $d  |                | $e  |       
+'                                                      +-----+                +-----+       
+'
+!procedure $transitions_3_choices($a, $t1="", $b="", $c="", $d="", $e="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $t6=$false(), $colour6="", $t7=$true(), $colour7="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $test1="", $test3="", $test5="")
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -499,13 +557,340 @@ skinparam note {
         state $choice3 <<choice>> #transparent##transparent
     !endif
 
-    $transition_test($a, $t1, $choice1, $colour1, $tags=$tags1, $test=$test_a)
+    $transition_test($a, $t1, $choice1, $colour1, $tags=$tags1, $test=$test1)
     $transition($choice1, $t2, $b, $colour2, $tags=$tags2)
-    $transition_test($choice1, $t3, $choice2, $colour3, $tags=$tags3, $test=$test_b)
+    $transition_test($choice1, $t3, $choice2, $colour3, $tags=$tags3, $test=$test3)
     $transition($choice2, $t4, $c, $colour4, $tags=$tags4)
-    $transition_test($choice2, $t5, $choice3, $colour5, $tags=$tags5, $test=$test_c)
+    $transition_test($choice2, $t5, $choice3, $colour5, $tags=$tags5, $test=$test5)
     $transition($choice3, $t6, $d, $colour6, $tags=$tags6)
     $transition($choice3, $t7, $e, $colour7, $tags=$tags7)
+!endprocedure
+
+' Create transitions to five other states via four choices
+'
+'        +-----+                              
+'        | $a  |                              
+'        +-----+                              
+'           |                                 
+' $t1, $colour1, $tags1                       
+'           |                                 
+'        $test1
+'           |                                 
+'           V
+'          / \                                
+'         |   ---------------------+          
+'          \ /                     |          
+'           |                      |          
+' $t2=$false(), $colour2, $tags2  $t3=$true(), $colour3, $tags3
+'           |                      |          
+'           V                   $test3
+'        +-----+                   |
+'        | $b  |                   V
+'        +-----+                  / \                                
+'                                |   ---------------------+          
+'                                 \ /                     |          
+'                                  |                      |          
+'                        $t4=$false(), $colour4, $tags4  $t5=$true(), $colour5, $tags5
+'                                  |                      |          
+'                                  V                   $test5
+'                               +-----+                   |       
+'                               | $c  |                   V       
+'                               +-----+                  / \                      
+'                                                       |   ---------------------+
+'                                                        \ /                     |
+'                                                         |                      |          
+'                                               $t6=$false(), $colour6, $tags6  $t7=$true(), $colour7, $tags7
+'                                                         |                      |          
+'                                                         v                   $test7
+'                                                      +-----+                   |
+'                                                      | $d  |                   V
+'                                                      +-----+                  / \                      
+'                                                                              |   ---------------------+
+'                                                                               \ /                     |
+'                                                                                |                      |          
+'                                                                      $t8=$false(), $colour8, $tags8  $t9=$true(), $colour9, $tags9
+'                                                                                |                      |          
+'                                                                                v                      v          
+'                                                                             +-----+                +-----+       
+'                                                                             | $e  |                | $f  |       
+'                                                                             +-----+                +-----+       
+'
+!procedure $transitions_4_choices($a, $t1="", $b="", $c="", $d="", $e="", $f="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $t6=$false(), $colour6="", $t7=$true(), $colour7="", $t8=$false(), $colour8="", $t9=$true(), $colour9="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $tags8="", $tags9="", $test1="", $test3="", $test5="", $test7="")
+    !$choice1 = $new_node()
+
+    !if $is_visible($tags2) || $is_visible($tags3)
+        state $choice1 <<choice>>
+    !else
+        state $choice1 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice2 = $new_node()
+
+    !if $is_visible($tags4) || $is_visible($tags5)
+        state $choice2 <<choice>>
+    !else
+        state $choice2 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice3 = $new_node()
+
+    !if $is_visible($tags6) || $is_visible($tags7)
+        state $choice3 <<choice>>
+    !else
+        state $choice3 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice4 = $new_node()
+
+    !if $is_visible($tags8) || $is_visible($tags9)
+        state $choice4 <<choice>>
+    !else
+        state $choice4 <<choice>> #transparent##transparent
+    !endif
+
+    $transition_test($a, $t1, $choice1, $colour1, $tags=$tags1, $test=$test1)
+    $transition($choice1, $t2, $b, $colour2, $tags=$tags2)
+    $transition_test($choice1, $t3, $choice2, $colour3, $tags=$tags3, $test=$test3)
+    $transition($choice2, $t4, $c, $colour4, $tags=$tags4)
+    $transition_test($choice2, $t5, $choice3, $colour5, $tags=$tags5, $test=$test5)
+    $transition($choice3, $t6, $d, $colour6, $tags=$tags6)
+    $transition_test($choice3, $t7, $choice4, $colour7, $tags=$tags7, $test=$test7)
+    $transition($choice4, $t8, $e, $colour8, $tags=$tags8)
+    $transition($choice4, $t9, $f, $colour9, $tags=$tags9)
+!endprocedure
+
+' Create transitions to six other states via five choices
+'
+'        +-----+                              
+'        | $a  |                              
+'        +-----+                              
+'           |                                 
+' $t1, $colour1, $tags1                       
+'           |                                 
+'        $test1
+'           |                                 
+'           V
+'          / \                                
+'         |   ---------------------+          
+'          \ /                     |          
+'           |                      |          
+' $t2=false(), $colour2, $tags2  $t3=true(), $colour3, $tags3
+'           |                      |          
+'           V                   $test3
+'        +-----+                   |
+'        | $b  |                   V
+'        +-----+                  / \                                
+'                                |   ---------------------+          
+'                                 \ /                     |          
+'                                  |                      |          
+'                        $t4=false(), $colour4, $tags4  $t5=true(), $colour5, $tags5
+'                                  |                      |          
+'                                  V                   $test5
+'                               +-----+                   |       
+'                               | $c  |                   V       
+'                               +-----+                  / \                      
+'                                                       |   ---------------------+
+'                                                        \ /                     |
+'                                                         |                      |          
+'                                               $t6=false(), $colour6, $tags6  $t7=true(), $colour7, $tags7
+'                                                         |                      |          
+'                                                         v                   $test7
+'                                                      +-----+                   |
+'                                                      | $d  |                   V
+'                                                      +-----+                  / \                      
+'                                                                              |   ---------------------+
+'                                                                               \ /                     |
+'                                                                                |                      |          
+'                                                                      $t8=false(), $colour8, $tags8  $t9=true(), $colour9, $tags9
+'                                                                                |                      |          
+'                                                                                v                   $test9
+'                                                                             +-----+                   |
+'                                                                             | $e  |                   V
+'                                                                             +-----+                  / \                      
+'                                                                                                     |   ---------------------+
+'                                                                                                      \ /                     |
+'                                                                                                       |                      |          
+'                                                                                            $t10=false(), $colour10, $tags10  $t11=true(), $colour11, $tags11
+'                                                                                                       |                      |          
+'                                                                                                       v                      v          
+'                                                                                                    +-----+                +-----+       
+'                                                                                                    | $f  |                | $g  |       
+'                                                                                                    +-----+                +-----+       
+'
+!procedure $transitions_5_choices($a, $t1="", $b="", $c="", $d="", $e="", $f="", $g="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $t6=$false(), $colour6="", $t7=$true(), $colour7="", $t8=$false(), $colour8="", $t9=$true(), $colour9="", $t10=$false(), $colour10="", $t11=$true(), $colour11="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $tags8="", $tags9="", $tags10="", $tags11="", $test1="", $test3="", $test5="", $test7="", $test9="")
+    !$choice1 = $new_node()
+
+    !if $is_visible($tags2) || $is_visible($tags3)
+        state $choice1 <<choice>>
+    !else
+        state $choice1 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice2 = $new_node()
+
+    !if $is_visible($tags4) || $is_visible($tags5)
+        state $choice2 <<choice>>
+    !else
+        state $choice2 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice3 = $new_node()
+
+    !if $is_visible($tags6) || $is_visible($tags7)
+        state $choice3 <<choice>>
+    !else
+        state $choice3 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice4 = $new_node()
+
+    !if $is_visible($tags8) || $is_visible($tags9)
+        state $choice4 <<choice>>
+    !else
+        state $choice4 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice5 = $new_node()
+
+    !if $is_visible($tags10) || $is_visible($tags11)
+        state $choice5 <<choice>>
+    !else
+        state $choice5 <<choice>> #transparent##transparent
+    !endif
+
+    $transition_test($a,       $t1,  $choice1, $colour1,  $tags=$tags1, $test=$test1)
+    $transition(     $choice1, $t2,  $b,       $colour2,  $tags=$tags2              )
+    $transition_test($choice1, $t3,  $choice2, $colour3,  $tags=$tags3, $test=$test3)
+    $transition(     $choice2, $t4,  $c,       $colour4,  $tags=$tags4              )
+    $transition_test($choice2, $t5,  $choice3, $colour5,  $tags=$tags5, $test=$test5)
+    $transition(     $choice3, $t6,  $d,       $colour6,  $tags=$tags6              )
+    $transition_test($choice3, $t7,  $choice4, $colour7,  $tags=$tags7, $test=$test7)
+    $transition(     $choice4, $t8,  $e,       $colour8,  $tags=$tags8              )
+    $transition_test($choice4, $t9,  $choice5, $colour9,  $tags=$tags9, $test=$test9)
+    $transition(     $choice5, $t10, $f,       $colour10, $tags=$tags10             )
+    $transition(     $choice5, $t11, $g,       $colour11, $tags=$tags11             )
+!endprocedure
+
+' Create transitions to seven other states via six choices
+'
+'        +-----+                              
+'        | $a  |                              
+'        +-----+                              
+'           |                                 
+' $t1, $colour1, $tags1                       
+'           |                                 
+'        $test1
+'           |                                 
+'           V
+'          / \                                
+'         |   |------------------------------+          
+'          \ /                               |          
+'           |                                |          
+' $t2=false(), $colour2, $tags2  $t3=true(), $colour3, $tags3
+'           |                                |          
+'           V                             $test3
+'        +-----+                             |
+'        | $b  |                             V
+'        +-----+                            / \                                
+'                                          |   |------------------------------+          
+'                                           \ /                               |          
+'                                            |                                |          
+'                                  $t4=false(), $colour4, $tags4  $t5=true(), $colour5, $tags5
+'                                            |                                |          
+'                                            V                             $test5
+'                                         +-----+                             |       
+'                                         | $c  |                             V       
+'                                         +-----+                            / \                      
+'                                                                           |   |---------------------------------------+
+'                                                                            \ /                                        |
+'                                                                             |                                         |          
+'                                                                   $t6=false(), $colour6, $tags6           $t7=true(), $colour7, $tags7
+'                                                                             |                                         |          
+'                                                                          $test6                                    $test7                     
+'                                                                             |                                         |                          
+'                                                                             V                                         V                         
+'                                                                            / \                                       / \                      
+'                                                      +--------------------|   |-------+                             |   -------------------------------+
+'                                                      |                     \ /        |                              \ /                               |
+'                                                      |                      -         |                               |                                |          
+'                                            $t8=false(), $colour8, $tags8  $t9=true(), $colour9, $tags9  $t10=false(), $colour10, $tags10  $t11=true(), $colour11, $tags11
+'                                                      |                                |                               |                                |          
+'                                                      v                                v                               v                             $test11
+'                                                   +-----+                          +-----+                         +-----+                             |
+'                                                   | $d  |                          | $e  |                         | $f  |                             V
+'                                                   +-----+                          +-----+                         +-----+                            / \                      
+'                                                                                                                                      +---------------|   |------------+
+'                                                                                                                                      |                \ /             |
+'                                                                                                                                      |                 -              |          
+'                                                                                                                        $t12=false(), $colour12, $tags12  $t13=true(), $colour13, $tags13
+'                                                                                                                                      |                                |          
+'                                                                                                                                      v                                v          
+'                                                                                                                                   +-----+                          +-----+       
+'                                                                                                                                   | $g  |                          | $h  |       
+'                                                                                                                                   +-----+                          +-----+       
+'
+!procedure $transitions_6_choices($a, $t1="", $b="", $c="", $d="", $e="", $f="", $g="", $h="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $t6=$false(), $colour6="", $t7=$true(), $colour7="", $t8=$false(), $colour8="", $t9=$true(), $colour9="", $t10=$false(), $colour10="", $t11=$true(), $colour11="", $t12=$false(), $colour12="", $t13=$true(), $colour13="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $tags8="", $tags9="", $tags10="", $tags11="", $tags12="", $tags13="", $test1="", $test3="", $test5="", $test6="", $test7="", $test11="")
+    !$choice1 = $new_node()
+
+    !if $is_visible($tags2) || $is_visible($tags3)
+        state $choice1 <<choice>>
+    !else
+        state $choice1 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice2 = $new_node()
+
+    !if $is_visible($tags4) || $is_visible($tags5)
+        state $choice2 <<choice>>
+    !else
+        state $choice2 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice3 = $new_node()
+
+    !if $is_visible($tags6) || $is_visible($tags7)
+        state $choice3 <<choice>>
+    !else
+        state $choice3 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice4 = $new_node()
+
+    !if $is_visible($tags8) || $is_visible($tags9)
+        state $choice4 <<choice>>
+    !else
+        state $choice4 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice5 = $new_node()
+
+    !if $is_visible($tags10) || $is_visible($tags11)
+        state $choice5 <<choice>>
+    !else
+        state $choice5 <<choice>> #transparent##transparent
+    !endif
+
+    !$choice6 = $new_node()
+
+    !if $is_visible($tags12) || $is_visible($tags13)
+        state $choice6 <<choice>>
+    !else
+        state $choice6 <<choice>> #transparent##transparent
+    !endif
+
+    $transition_test($a,       $t1,  $choice1, $colour1,  $tags=$tags1,  $test=$test1 )
+    $transition(     $choice1, $t2,  $b,       $colour2,  $tags=$tags2                )
+    $transition_test($choice1, $t3,  $choice2, $colour3,  $tags=$tags3,  $test=$test3 )
+    $transition(     $choice2, $t4,  $c,       $colour4,  $tags=$tags4                )
+    $transition_test($choice2, $t5,  $choice3, $colour5,  $tags=$tags5,  $test=$test5 )
+    $transition_test($choice3, $t6,  $choice4, $colour6,  $tags=$tags6,  $test=$test6 )
+    $transition_test($choice3, $t7,  $choice5, $colour7,  $tags=$tags7,  $test=$test7 )
+    $transition(     $choice4, $t8,  $d,       $colour8,  $tags=$tags8                )
+    $transition(     $choice4, $t9,  $e,       $colour9,  $tags=$tags9                )
+    $transition(     $choice5, $t10, $f,       $colour10, $tags=$tags10               )
+    $transition_test($choice5, $t11, $choice6, $colour11, $tags=$tags11, $test=$test11)
+    $transition(     $choice6, $t12, $g,       $colour12, $tags=$tags12               )
+    $transition(     $choice6, $t13, $h,       $colour13, $tags=$tags13               )
 !endprocedure
 
 !procedure $choice_end_transition($a, $t1="", $c="", $colour1="", $t2="", $colour2="", $t3="", $colour3="")

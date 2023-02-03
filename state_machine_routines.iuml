@@ -1,6 +1,6 @@
 @startuml state_machine_routines
 
-!include https://raw.githubusercontent.com/davmf/plantuml-utilities/develop/common.iuml
+!include https://raw.githubusercontent.com/davmf/plantuml-utilities/main/common.iuml
 
 'scale 4096 height
 

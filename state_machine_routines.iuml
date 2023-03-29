@@ -30,6 +30,7 @@ skinparam state {
     FontColor<<hidden>> transparent
     FontColor<<transition_hidden>> transparent
     FontSize<<transition>> 10
+    FontSize<<proxy>> 8
     FontSize<<transition_hidden>> 10
     FontSize 12
 }
@@ -60,11 +61,11 @@ skinparam note {
 !endfunction
 
 !function $true()
-    !return "[true]"
+    !return "true"
 !endfunction
 
 !function $false()
-    !return "[false]"
+    !return "false"
 !endfunction
 
 !function $br()
@@ -125,7 +126,7 @@ skinparam note {
     !return %false()
 !endfunction
 
-!procedure $state($name, $entry="", $do="", $exit="", $tags="")
+!procedure $state($name, $entry="", $do="", $exit="", $tags="", $colour="", $ui="")
     !$label = "**" + $name + "**"
     !$text = ""
 
@@ -164,15 +165,23 @@ skinparam note {
         !$text = $text + "|<r>//exit//: |" + $exit + " |"
     !endif
 
+    !if $ui != ""
+        !$text = $text + "\n" + $ui_content($ui)
+    !endif
+
+    !if $colour != ""
+        !$colour = %lighten($colour, 98)
+    !endif
+
     !if $text != ""
         !if $is_visible($tags)
-            state $make_symbol($name) as "<size:16>$label" : $text
+            state $make_symbol($name) as "<size:16>$label" $colour : $text
         !else
             state $make_symbol($name) as "<size:16>$label" <<hidden>> : $text
         !endif
     !else
         !if $is_visible($tags)
-            state $make_symbol($name) as "<size:16>$label"
+            state $make_symbol($name) as "<size:16>$label" $colour
         !else
             state $make_symbol($name) as "<size:16>$label" <<hidden>>
         !endif
@@ -211,22 +220,37 @@ skinparam note {
     !endif
 !endprocedure
 
-/'┌────┐
-  │ $a │
-  └─┬──┘
-    │
-   $t
-    │
-  ┌─┴──┐
-  │ $b │
-  └────┘
- '/
-!procedure $transition($a, $t="", $b="", $colour="", $note="", $tags="", $note_dir="right")
+!function $is_proxy_state($name)
+    !if %strpos($name, "_proxy") > 0
+        !return %true()
+    !else
+        !return %false()
+    !endif
+!endfunction
+
+!function $actual_state($proxy_state)
+    !$proxy_length = %strlen($proxy_state)
+    !return %substr($proxy_state, 0, $proxy_length - 6)
+!endfunction
+
+
+'  +────+
+'  │ $a │
+'  +─┬──+
+'    │
+'   $t
+'    │
+'    V
+'  +----+
+'  │ $b │
+'  +────+
+'
+!procedure $transition($a, $t="", $b="", $colour="", $note="", $tags="", $note_dir="right", $ui="", $icon="")
     !$a = $make_symbol($a)
     !$b = $make_symbol($b)
 
     !if $colour == ""
-        !$colour = "#Green"
+        !$colour = "#Black"
     !endif
 
     !if $is_visible($tags)
@@ -236,26 +260,37 @@ skinparam note {
         !$colour = "#transparent"
     !endif
 
-    !if $t != ""
+    !if $t != "" || $ui != "" || $icon != ""
         !$transition_node = $new_node()
 
-        !if $a == "[*]"
-            !$a = $new_node()
-            state $a <<start>> $colour
+        !if $ui != ""
+            !$t = $ui_content($ui)
+        !elseif $icon != ""
+            !$t = $icon
         !else
-            !if $b == "[*]"
-                !$b = $new_node()
-                state $b <<end>> $colour
+            !if $a == "[*]"
+                !$a = $new_node()
+                state $a <<start>> $colour
+            !else
+                !if $b == "[*]"
+                    !$b = $new_node()
+                    state $b <<end>> $colour
+                !elseif $is_proxy_state($b)
+                    !$label = $actual_state($b)
+                    !$b = $new_node()
+                    !$node_colour = %lighten($colour, 98)
+                    state $b as "$label" <<proxy>> $node_colour
+                !endif
             !endif
-        !endif
 
-        !$t = "<#transparent,#transparent>|<color:" + $colour + ">" + $t + "|"
-        !$repl = "|\n|" + "<color:" + $colour + ">"
-        !$t = $strrepl($t, "<br>", $repl)
-        !$repl = "|\n|" + "<color:" + $colour + ">  "
-        !$t = $strrepl($t, "<br1>", $repl)
-        !$repl = "|\n|" + "<color:" + $colour + ">    "
-        !$t = $strrepl($t, "<br2>", $repl)
+            !$t = "<#transparent,#transparent>|<color:" + $colour + ">" + $t + "|"
+            !$repl = "|\n|" + "<color:" + $colour + ">"
+            !$t = $strrepl($t, "<br>", $repl)
+            !$repl = "|\n|" + "<color:" + $colour + ">  "
+            !$t = $strrepl($t, "<br1>", $repl)
+            !$repl = "|\n|" + "<color:" + $colour + ">    "
+            !$t = $strrepl($t, "<br2>", $repl)
+        !endif
 
         state "$t" as $transition_node <<$stereotype>>
 
@@ -273,6 +308,11 @@ skinparam note {
             !if $b == "[*]"
                 !$b = $new_node()
                 state $b <<end>> $colour
+            !elseif $is_proxy_state($b)
+                !$label = $actual_state($b)
+                !$b = $new_node()
+                !$node_colour = %lighten($colour, 98)
+                state $b as "$label" <<proxy>> $node_colour
             !endif
         !endif
         $a -[$colour]-> $b
@@ -280,13 +320,16 @@ skinparam note {
 !endprocedure
 
 !procedure $transition_test($a, $t="", $b="", $colour="", $note="", $tags="", $note_dir="right", $test="")
-    !assert $test != "": "Test is empty!  Must have a test."
+    !if $test == ""
+        !log Note: Using default test value!
+        !$test = "???"
+    !endif
 
     !$a = $make_symbol($a)
     !$b = $make_symbol($b)
 
     !if $colour == ""
-        !$colour = "#Green"
+        !$colour = "#Black"
     !endif
 
     !if $is_visible($tags)
@@ -297,6 +340,11 @@ skinparam note {
     !endif
 
     !$test_node = $new_node()
+
+    !$test = $strrepl($test, "<br>", "</color>\n<color:" + $colour + ">")
+    !$test = "<color:" + $colour + ">[ " + $test + " ]</color>"
+
+    state "$test" as $test_node <<$stereotype>>
 
     !if $t != ""
         !$transition_node = $new_node()
@@ -319,11 +367,7 @@ skinparam note {
         !$repl = "|\n|" + "<color:" + $colour + ">    "
         !$t = $strrepl($t, "<br2>", $repl)
 
-        !$test = $strrepl($test, "<br>", "</color>\n<color:" + $colour + ">")
-        !$test = "<color:" + $colour + ">[ " + $test + " ]</color>"
-
         state "$t" as $transition_node <<$stereotype>>
-        state "$test" as $test_node <<$stereotype>>
 
         !if $note != ""
             $add_note($note, $note_dir, $tags, $transition_node)
@@ -343,7 +387,7 @@ skinparam note {
             !endif
         !endif
 
-        $a -[$colour]-> $test_node
+        $a -[$colour]->o $test_node
         $test_node -[$colour]-> $b
     !endif
 !endprocedure
@@ -371,7 +415,7 @@ skinparam note {
 
     !$a = "error_" + $b
     state $a <<start>> $colour
-    $transition($a, $t, $b, $colour, $dir="r", $tags=$tags)
+    $transition($a, $t, $b, $colour, $tags=$tags)
 !endprocedure
 
 !procedure $input_node($node, $colour, $tags="")
@@ -404,7 +448,21 @@ skinparam note {
 '        | $b  |                | $c  |       
 '        +-----+                +-----+       
 '
-!procedure $transitions_1_choice($a, $t1="", $b="", $c="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $dir="", $dir_="", $tags1="", $tags2="", $tags3="", $test1="")
+!procedure $transitions_1_choice( \
+        $a, \
+        $t1="", \
+        $b="", \
+        $c="", \
+        $colour1="", \
+        $tags1="", \
+        $test1="", \
+        $t2=$false(), \
+        $colour2="", \
+        $tags2="", \
+        $t3=$true(), \
+        $colour3="", \
+        $tags3="" \
+)
     !$choice = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -431,9 +489,9 @@ skinparam note {
     !endif
 
     $transition($a, $t1, $choice, $colour1, $tags=$tags1)
-    $transition($choice, $t2, $join_node, $colour2, $dir=$dir, $tags=$tags2)
-    $transition($choice, $t3, $join_node, $colour3, $dir=$dir_, $tags=$tags3)
-    $transition($join_node, $t="", $b, $colour=$colour1, $dir=$dir_, $tags=$tags1)
+    $transition($choice, $t2, $join_node, $colour2, $tags=$tags2)
+    $transition($choice, $t3, $join_node, $colour3, $tags=$tags3)
+    $transition($join_node, $t="", $b, $colour=$colour1, $tags=$tags1)
 !endprocedure
 
 ' Create transitions to three other states via two choices
@@ -468,7 +526,29 @@ skinparam note {
 '                               +-----+                +-----+       
 '                       
 '
-!procedure $transitions_2_choices($a, $t1="", $b="", $c="", $d="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $test1="", $test3="")
+!procedure $transitions_2_choices( \
+    $a, \
+    $t1="", \
+    $b="", \
+    $c="", \
+    $d="", \
+    $test1="", \
+    $colour1="", \
+    $tags1="", \
+    $t2=$false(), \
+    $colour2="", \
+    $tags2="", \
+    $t3=$true(), \
+    $colour3="", \
+    $tags3="", \
+    $test3="", \
+    $t4=$false(), \
+    $colour4="", \
+    $tags4="", \
+    $t5=$true(), \
+    $colour5="", \
+    $tags5="" \
+)
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -532,7 +612,37 @@ skinparam note {
 '                                                      | $d  |                | $e  |       
 '                                                      +-----+                +-----+       
 '
-!procedure $transitions_3_choices($a, $t1="", $b="", $c="", $d="", $e="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $t6=$false(), $colour6="", $t7=$true(), $colour7="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $test1="", $test3="", $test5="")
+!procedure $transitions_3_choices(\
+    $a,\
+    $t1="",\
+    $b="",\
+    $c="",\
+    $d="",\
+    $e="",\
+    $colour1="",\
+    $t2=$false(),\
+    $colour2="",\
+    $t3=$true(),\
+    $colour3="",\
+    $t4=$false(),\
+    $colour4="",\
+    $t5=$true(),\
+    $colour5="",\
+    $t6=$false(),\
+    $colour6="",\
+    $t7=$true(),\
+    $colour7="",\
+    $tags1="",\
+    $tags2="",\
+    $tags3="",\
+    $tags4="",\
+    $tags5="",\
+    $tags6="",\
+    $tags7="",\
+    $test1="",\
+    $test3="",\
+    $test5=""\
+)
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -615,7 +725,45 @@ skinparam note {
 '                                                                             | $e  |                | $f  |       
 '                                                                             +-----+                +-----+       
 '
-!procedure $transitions_4_choices($a, $t1="", $b="", $c="", $d="", $e="", $f="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $t6=$false(), $colour6="", $t7=$true(), $colour7="", $t8=$false(), $colour8="", $t9=$true(), $colour9="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $tags8="", $tags9="", $test1="", $test3="", $test5="", $test7="")
+!procedure $transitions_4_choices(\
+    $a,\
+    $t1="",\
+    $b="",\
+    $c="",\
+    $d="",\
+    $e="",\
+    $f="",\
+    $colour1="",\
+    $t2=$false(),\
+    $colour2="",\
+    $t3=$true(),\
+    $colour3="",\
+    $t4=$false(),\
+    $colour4="",\
+    $t5=$true(),\
+    $colour5="",\
+    $t6=$false(),\
+    $colour6="",\
+    $t7=$true(),\
+    $colour7="",\
+    $t8=$false(),\
+    $colour8="",\
+    $t9=$true(),\
+    $colour9="",\
+    $tags1="",\
+    $tags2="",\
+    $tags3="",\
+    $tags4="",\
+    $tags5="",\
+    $tags6="",\
+    $tags7="",\
+    $tags8="",\
+    $tags9="",\
+    $test1="",\
+    $test3="",\
+    $test5="",\
+    $test7=""\
+)
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -717,7 +865,53 @@ skinparam note {
 '                                                                                                    | $f  |                | $g  |       
 '                                                                                                    +-----+                +-----+       
 '
-!procedure $transitions_5_choices($a, $t1="", $b="", $c="", $d="", $e="", $f="", $g="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $t6=$false(), $colour6="", $t7=$true(), $colour7="", $t8=$false(), $colour8="", $t9=$true(), $colour9="", $t10=$false(), $colour10="", $t11=$true(), $colour11="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $tags8="", $tags9="", $tags10="", $tags11="", $test1="", $test3="", $test5="", $test7="", $test9="")
+!procedure $transitions_5_choices(\
+    $a,\
+    $t1="",\
+    $b="",\
+    $c="",\
+    $d="",\
+    $e="",\
+    $f="",\
+    $g="",\
+    $colour1="",\
+    $t2=$false(),\
+    $colour2="",\
+    $t3=$true(),\
+    $colour3="",\
+    $t4=$false(),\
+    $colour4="",\
+    $t5=$true(),\
+    $colour5="",\
+    $t6=$false(),\
+    $colour6="",\
+    $t7=$true(),\
+    $colour7="",\
+    $t8=$false(),\
+    $colour8="",\
+    $t9=$true(),\
+    $colour9="",\
+    $t10=$false(),\
+    $colour10="",\
+    $t11=$true(),\
+    $colour11="",\
+    $tags1="",\
+    $tags2="",\
+    $tags3="",\
+    $tags4="",\
+    $tags5="",\
+    $tags6="",\
+    $tags7="",\
+    $tags8="",\
+    $tags9="",\
+    $tags10="",\
+    $tags11="",\
+    $test1="",\
+    $test3="",\
+    $test5="",\
+    $test7="",\
+    $test9=""\
+)
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -829,7 +1023,61 @@ skinparam note {
 '                                                                                                                                   | $g  |                          | $h  |       
 '                                                                                                                                   +-----+                          +-----+       
 '
-!procedure $transitions_6_choices($a, $t1="", $b="", $c="", $d="", $e="", $f="", $g="", $h="", $colour1="", $t2=$false(), $colour2="", $t3=$true(), $colour3="", $t4=$false(), $colour4="", $t5=$true(), $colour5="", $t6=$false(), $colour6="", $t7=$true(), $colour7="", $t8=$false(), $colour8="", $t9=$true(), $colour9="", $t10=$false(), $colour10="", $t11=$true(), $colour11="", $t12=$false(), $colour12="", $t13=$true(), $colour13="", $tags1="", $tags2="", $tags3="", $tags4="", $tags5="", $tags6="", $tags7="", $tags8="", $tags9="", $tags10="", $tags11="", $tags12="", $tags13="", $test1="", $test3="", $test5="", $test6="", $test7="", $test11="")
+!procedure $transitions_6_choices(\
+    $a,\
+    $t1="",\
+    $b="",\
+    $c="",\
+    $d="",\
+    $e="",\
+    $f="",\
+    $g="",\
+    $h="",\
+    $colour1="",\
+    $t2=$false(),\
+    $colour2="",\
+    $t3=$true(),\
+    $colour3="",\
+    $t4=$false(),\
+    $colour4="",\
+    $t5=$true(),\
+    $colour5="",\
+    $t6=$false(),\
+    $colour6="",\
+    $t7=$true(),\
+    $colour7="",\
+    $t8=$false(),\
+    $colour8="",\
+    $t9=$true(),\
+    $colour9="",\
+    $t10=$false(),\
+    $colour10="",\
+    $t11=$true(),\
+    $colour11="",\
+    $t12=$false(),\
+    $colour12="",\
+    $t13=$true(),\
+    $colour13="",\
+    $tags1="",\
+    $tags2="",\
+    $tags3="",\
+    $tags4="",\
+    $tags5="",\
+    $tags6="",\
+    $tags7="",\
+    $tags8="",\
+    $tags9="",\
+    $tags10="",\
+    $tags11="",\
+    $tags12="",\
+    $tags13="",\
+    $test1="",\
+    $test3="",\
+    $test5="",\
+    $test6="",\
+    $test7="",\
+    $test11=""\
+)
     !$choice1 = $new_node()
 
     !if $is_visible($tags2) || $is_visible($tags3)
@@ -892,6 +1140,16 @@ skinparam note {
     $transition(     $choice6, $t12, $g,       $colour12, $tags=$tags12               )
     $transition(     $choice6, $t13, $h,       $colour13, $tags=$tags13               )
 !endprocedure
+
+
+' Incomplete draft of generic transition procedure
+' !procedure $transition_tree(\
+'     $stateA \
+'     , $trigger \
+'     , $action \
+'     , $stateB \
+'     , $stateC
+
 
 !procedure $choice_end_transition($a, $t1="", $c="", $colour1="", $t2="", $colour2="", $t3="", $colour3="")
     !$choice = $a + "_choice"
@@ -1031,6 +1289,10 @@ skinparam note {
 $text
     endnote
 !endprocedure
+
+!function $ui_content($content)
+    !return "{{\nsalt\n"+$content+"\n}}"
+!endfunction
 
 !if %variable_exists("$in")
     $tokenise($in, "in")

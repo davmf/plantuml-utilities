@@ -30,7 +30,7 @@ skinparam component {
 
     component "$t" as $transition_node <<arrow label>>
 
-    $a -$dir-> $transition_node
+    $a -$dir- $transition_node
     $transition_node -$dir_-> $b
 !endprocedure
 

@@ -50,4 +50,8 @@
     !endif
 !endprocedure
 
+!procedure $usecase($name, $stereotype)
+    usecase $make_symbol($name) as "$name" <<$stereotype>>
+!endprocedure
+
 @enduml

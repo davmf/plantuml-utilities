@@ -113,19 +113,6 @@ skinparam note {
     !return %false()
 !endfunction
 
-!function $is_visible($tags)
-    !if ($tags == "") !return %true()
-
-    !if ($white_list == "")
-        !if ($black_list == "") !return %true()
-        !if $is_str_match($tags, $black_list) !return %false()
-        !return %true()
-    !endif
-
-    !if $is_str_match($tags, $white_list) !return %true()
-    !return %false()
-!endfunction
-
 !procedure $state($name, $entry="", $do="", $exit="", $tags="", $colour="", $ui="")
     !$label = "**" + $name + "**"
     !$text = ""
@@ -165,7 +152,7 @@ skinparam note {
         !$text = $text + "|<r>//exit//: |" + $exit + " |"
     !endif
 
-    !if $ui != ""
+    !if $ui != "" && $is_visible($tags)
         !$text = $text + "\n" + $ui_content($ui)
     !endif
 
@@ -220,6 +207,14 @@ skinparam note {
     !endif
 !endprocedure
 
+!procedure $choice($name, $tags="")
+    !if $is_visible($tags)
+        state $make_symbol($name) <<choice>>
+    !else 
+        state $make_symbol($name) <<choice>> #transparent##transparent
+    !endif 
+!endprocedure
+
 !function $is_proxy_state($name)
     !if %strpos($name, "_proxy") > 0
         !return %true()
@@ -245,7 +240,7 @@ skinparam note {
 '  │ $b │
 '  +────+
 '
-!procedure $transition($a, $t="", $b="", $colour="", $note="", $tags="", $note_dir="right", $ui="", $icon="")
+!procedure $transition($a, $t="", $b="", $colour="", $note="", $tags="", $note_dir="right", $ui="", $icon="", $down=%true())
     !$a = $make_symbol($a)
     !$b = $make_symbol($b)
 
@@ -263,10 +258,20 @@ skinparam note {
     !if $t != "" || $ui != "" || $icon != ""
         !$transition_node = $new_node()
 
-        !if $ui != ""
-            !$t = $ui_content($ui)
-        !elseif $icon != ""
-            !$t = $icon
+        !if $ui != "" && $is_visible($tags)
+            !$t = $ui_content($ui + " | " + $t)
+
+            !if $a == "[*]"
+                !$a = $new_node()
+                state $a <<start>> $colour
+            !elseif $b == "[*]"
+                !$b = $new_node()
+                state $b <<end>> $colour
+            !endif
+
+        !elseif $icon != "" && $is_visible($tags)
+            !$t = "<color:" + $colour + ">" + $icon + "</color>"
+
         !else
             !if $a == "[*]"
                 !$a = $new_node()
@@ -298,8 +303,13 @@ skinparam note {
             $add_note($note, $note_dir, $tags, $transition_node)
         !endif
 
-        $a -[$colour]->o $transition_node
-        $transition_node -[$colour]-> $b
+        !if $down
+            $a -[$colour]->o $transition_node
+            $transition_node -[$colour]-> $b
+        !else
+            $a -[$colour]>o $transition_node
+            $transition_node -[$colour]> $b
+        !endif
     !else
         !if $a == "[*]"
             !$a = $new_node()
@@ -315,7 +325,12 @@ skinparam note {
                 state $b as "$label" <<proxy>> $node_colour
             !endif
         !endif
-        $a -[$colour]-> $b
+
+        !if $down
+            $a -[$colour]-> $b
+        !else
+            $a -[$colour]> $b
+        !endif
     !endif
 !endprocedure
 
@@ -1266,7 +1281,7 @@ skinparam note {
             !if $node == ""
                 note $dir
             !else
-                note $dir of $node
+                note $dir of $make_symbol($node)
             !endif
         !endif
 '
@@ -1278,7 +1293,7 @@ skinparam note {
             !if $node == ""
                 note $dir <<hidden>>
             !else
-                note $dir of $node <<hidden>>
+                note $dir of $make_symbol($node) <<hidden>>
             !endif
         !endif
 '

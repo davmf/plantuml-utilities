@@ -44,11 +44,39 @@ skinparam note {
     BorderColor<<hidden>> #transparent
 }
 
+!if %not(%variable_exists("$remove_hidden_items"))
+    !$remove_hidden_items = %false()
+!endif
+
 !function $super_state($name, $tags="")
     !if $is_visible($tags)
         !return "state " + %chr(34) + "<size:16>**" + $name + "**" + %chr(34) + " as " + $make_symbol($name)
     !else
         !return "state " + %chr(34) + "<size:16>**" + $name + "**" + %chr(34) + " as " + $make_symbol($name) + " <<hidden>>"
+    !endif
+!endfunction
+
+!function $super_state_start($name, $tags="")
+    !if $is_visible($tags) || %not($remove_hidden_items)
+        !return $super_state($name, $tags) + %chr(123)
+    !else
+        !return ""
+    !endif
+!endfunction
+
+!function $super_state_end($name, $tags="")
+    !if $is_visible($tags) || %not($remove_hidden_items)
+        !return %chr(125)
+    !else
+        !return ""
+    !endif
+!endfunction
+
+!function $concurrent($tags="")
+    !if $is_visible($tags) || %not($remove_hidden_items)
+        !return %chr(124)+%chr(124)
+    !else
+        !return ""
     !endif
 !endfunction
 
@@ -163,13 +191,13 @@ skinparam note {
     !if $text != ""
         !if $is_visible($tags)
             state $make_symbol($name) as "<size:16>$label" $colour : $text
-        !else
+        !elseif %not($remove_hidden_items)
             state $make_symbol($name) as "<size:16>$label" <<hidden>> : $text
         !endif
     !else
         !if $is_visible($tags)
             state $make_symbol($name) as "<size:16>$label" $colour
-        !else
+        !elseif %not($remove_hidden_items)
             state $make_symbol($name) as "<size:16>$label" <<hidden>>
         !endif
     !endif
@@ -255,23 +283,62 @@ skinparam note {
         !$colour = "#transparent"
     !endif
 
-    !if $t != "" || $ui != "" || $icon != ""
-        !$transition_node = $new_node()
+    !if $is_visible($tags) || %not($remove_hidden_items)
+        !if $t != "" || $ui != "" || $icon != ""
+            !$transition_node = $new_node()
 
-        !if $ui != "" && $is_visible($tags)
-            !$t = $ui_content($ui + " | " + $t)
+            !if $ui != "" && $is_visible($tags)
+                !$t = $ui_content($ui + " | " + $t)
 
-            !if $a == "[*]"
-                !$a = $new_node()
-                state $a <<start>> $colour
-            !elseif $b == "[*]"
-                !$b = $new_node()
-                state $b <<end>> $colour
+                !if $a == "[*]"
+                    !$a = $new_node()
+                    state $a <<start>> $colour
+                !elseif $b == "[*]"
+                    !$b = $new_node()
+                    state $b <<end>> $colour
+                !endif
+
+            !elseif $icon != "" && $is_visible($tags)
+                !$t = "<color:" + $colour + ">" + $icon + "</color>"
+
+            !else
+                !if $a == "[*]"
+                    !$a = $new_node()
+                    state $a <<start>> $colour
+                !else
+                    !if $b == "[*]"
+                        !$b = $new_node()
+                        state $b <<end>> $colour
+                    !elseif $is_proxy_state($b)
+                        !$label = $actual_state($b)
+                        !$b = $new_node()
+                        !$node_colour = %lighten($colour, 98)
+                        state $b as "$label" <<proxy>> $node_colour
+                    !endif
+                !endif
+
+                !$t = "<#transparent,#transparent>|<color:" + $colour + ">" + $t + "|"
+                !$repl = "|\n|" + "<color:" + $colour + ">"
+                !$t = $strrepl($t, "<br>", $repl)
+                !$repl = "|\n|" + "<color:" + $colour + ">  "
+                !$t = $strrepl($t, "<br1>", $repl)
+                !$repl = "|\n|" + "<color:" + $colour + ">    "
+                !$t = $strrepl($t, "<br2>", $repl)
             !endif
 
-        !elseif $icon != "" && $is_visible($tags)
-            !$t = "<color:" + $colour + ">" + $icon + "</color>"
+            state "$t" as $transition_node <<$stereotype>>
 
+            !if $note != ""
+                $add_note($note, $note_dir, $tags, $transition_node)
+            !endif
+
+            !if $down
+                $a -[$colour]->o $transition_node
+                $transition_node -[$colour]-> $b
+            !else
+                $a -[$colour]>o $transition_node
+                $transition_node -[$colour]> $b
+            !endif
         !else
             !if $a == "[*]"
                 !$a = $new_node()
@@ -288,48 +355,11 @@ skinparam note {
                 !endif
             !endif
 
-            !$t = "<#transparent,#transparent>|<color:" + $colour + ">" + $t + "|"
-            !$repl = "|\n|" + "<color:" + $colour + ">"
-            !$t = $strrepl($t, "<br>", $repl)
-            !$repl = "|\n|" + "<color:" + $colour + ">  "
-            !$t = $strrepl($t, "<br1>", $repl)
-            !$repl = "|\n|" + "<color:" + $colour + ">    "
-            !$t = $strrepl($t, "<br2>", $repl)
-        !endif
-
-        state "$t" as $transition_node <<$stereotype>>
-
-        !if $note != ""
-            $add_note($note, $note_dir, $tags, $transition_node)
-        !endif
-
-        !if $down
-            $a -[$colour]->o $transition_node
-            $transition_node -[$colour]-> $b
-        !else
-            $a -[$colour]>o $transition_node
-            $transition_node -[$colour]> $b
-        !endif
-    !else
-        !if $a == "[*]"
-            !$a = $new_node()
-            state $a <<start>> $colour
-        !else
-            !if $b == "[*]"
-                !$b = $new_node()
-                state $b <<end>> $colour
-            !elseif $is_proxy_state($b)
-                !$label = $actual_state($b)
-                !$b = $new_node()
-                !$node_colour = %lighten($colour, 98)
-                state $b as "$label" <<proxy>> $node_colour
+            !if $down
+                $a -[$colour]-> $b
+            !else
+                $a -[$colour]> $b
             !endif
-        !endif
-
-        !if $down
-            $a -[$colour]-> $b
-        !else
-            $a -[$colour]> $b
         !endif
     !endif
 !endprocedure
@@ -1286,7 +1316,9 @@ skinparam note {
         !endif
 '
         !$text = $strrepl($text, "<br>", %chr(10))
-    !else
+$text
+    endnote
+    !elseif %not($remove_hidden_items)
         !if $dir == ""
             note as $new_note() <<hidden>>
         !else
@@ -1299,10 +1331,9 @@ skinparam note {
 '
         !$text = $strrepl($text, "<br>", %chr(10)+"<color:#transparent>")
         !$text = "<color:#transparent>" + $text
-    !endif
-'    
 $text
     endnote
+    !endif
 !endprocedure
 
 !function $ui_content($content)

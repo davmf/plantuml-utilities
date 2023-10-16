@@ -44,6 +44,12 @@ skinparam note {
     BorderColor<<hidden>> #transparent
 }
 
+' transition types
+!$unclassified = 0
+!$primary = 1
+!$secondary = 2
+!$exception = 3
+
 !if %not(%variable_exists("$remove_hidden_items"))
     !$remove_hidden_items = %false()
 !endif
@@ -268,12 +274,22 @@ skinparam note {
 '  │ $b │
 '  +────+
 '
-!procedure $transition($a, $t="", $b="", $colour="", $note="", $tags="", $note_dir="right", $ui="", $icon="", $down=%true())
+!procedure $transition($a, $t="", $b="", $colour="", $note="", $tags="", $type=$unclassified, $note_dir="right", $ui="", $icon="", $down=%true())
     !$a = $make_symbol($a)
     !$b = $make_symbol($b)
 
-    !if $colour == ""
+    !if $type == $primary
+        !$colour = "#Green"
+        !$thickness = 4
+    !elseif $type == $secondary
+        !$colour = "#Blue"
+        !$thickness = 2
+    !elseif $type == $exception
+        !$colour = "#Red"
+        !$thickness = 1
+    !else
         !$colour = "#Black"
+        !$thickness = 1
     !endif
 
     !if $is_visible($tags)
@@ -333,11 +349,11 @@ skinparam note {
             !endif
 
             !if $down
-                $a -[$colour]->o $transition_node
-                $transition_node -[$colour]-> $b
+                $a -[$colour,thickness=$thickness]->o $transition_node
+                $transition_node -[$colour,thickness=$thickness]-> $b
             !else
-                $a -[$colour]>o $transition_node
-                $transition_node -[$colour]> $b
+                $a -[$colour,thickness=$thickness]>o $transition_node
+                $transition_node -[$colour,thickness=$thickness]> $b
             !endif
         !else
             !if $a == "[*]"
@@ -356,9 +372,9 @@ skinparam note {
             !endif
 
             !if $down
-                $a -[$colour]-> $b
+                $a -[$colour,thickness=$thickness]-> $b
             !else
-                $a -[$colour]> $b
+                $a -[$colour,thickness=$thickness]> $b
             !endif
         !endif
     !endif
